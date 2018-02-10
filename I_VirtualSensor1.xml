@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<implementation>
+    <!-- files>L_LuaXP.lua</files -->
+    <functions>
+        -- -------------------------------------------------------------------------------------------------------------------------
+        -- VirtualSensor
+        -- https://github.com/toggledbits/VirtualSensor
+        -- Patrick Rigney, patrick@toggledbits.com
+        -- -------------------------------------------------------------------------------------------------------------------------
+        function startupVirtualSensor(dev)
+            luup.log("VirtualSensor Plugin START-UP!")
+            VirtualSensor = require("L_VirtualSensor1")
+            virtualSensorTick = VirtualSensor.plugin_tick
+            -- virtualSensorRequestHandler = VirtualSensor.requestHandler
+            -- luup.register_handler("virtualSensorRequestHandler", "VirtualSensor")
+            return VirtualSensor.plugin_init(dev)
+        end
+    </functions>
+    <startup>startupVirtualSensor</startup>
+    <actionList>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>GetInterval</name>
+            <run>
+                return -- what we do here doesn't matter, luup uses the relatedStateVariable directly
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>SetInterval</name>
+            <run>
+                local newInterval = lul_settings.newTargetValue
+                if newInterval ~= nil then newInterval = tonumber(newInterval, 10) end
+                if newInterval ~= nil and newInterval > 0 then
+                    luup.variable_set("urn:toggledbits-com:serviceId:VirtualSensor1", "Interval", newInterval, lul_device)
+                    return true
+                end
+                return false
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:micasaverde-com:serviceId:SecuritySensor1</serviceId>
+            <name>SetArmed</name>
+            <run>
+                VirtualSensor.actionSetArmed(lul_device, lul_settings.newArmedValue)
+                return true
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>SetDebug</name>
+            <run>
+                VirtualSensor.actionSetDebug( lul_device, lul_settings.debug )
+            </run>
+        </action>
+    </actionList>
+</implementation>
