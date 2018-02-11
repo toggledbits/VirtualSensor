@@ -64,7 +64,7 @@ var VirtualSensor = (function(api) {
             var html = "";
 
             html += "<style>";
-            html += ".tb-cgroup { padding: 0px 16px 0px 0px; width: 24%; }";
+            html += ".tb-cgroup { padding: 0px 16px 0px 0px; }";
             html += ".tb-large { font-size: 1.5em; }";
             html += ".tb-medium { font-size: 1.2em; }";
             html += ".tb-red { color: red !important; font-weight: bold; }";
