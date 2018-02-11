@@ -82,7 +82,7 @@ var VirtualSensor = (function(api) {
 
             // Amplitude
             html += "<div class=\"tb-cgroup pull-left\">";
-            html += "<h2>Amplitude</h2><label for=\"amplitude\">Enter the peak amplitude (how far beyond the midline the values will go in each direction):</label><br/>";
+            html += "<h2>Amplitude</h2><label for=\"amplitude\">Enter the peak amplitude (how far above/below the midline values may go):</label><br/>";
             html += "<input type=\"text\" size=\"8\" class=\"numfield\" id=\"amplitude\" />";
             html += "</div>";
 
