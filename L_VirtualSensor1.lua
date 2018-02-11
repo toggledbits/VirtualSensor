@@ -14,7 +14,7 @@ local _PLUGIN_VERSION = "1.0"
 local _PLUGIN_URL = "http://www.toggledbits.com/projects"
 local _CONFIGVERSION = 010000
 
-local debugMode = true
+local debugMode = false
 local traceMode = false
 
 local MYSID = "urn:toggledbits-com:serviceId:VirtualSensor1"
@@ -24,7 +24,7 @@ local runStamp = 0
 local isALTUI = false
 local isOpenLuup = false
 
---[[ const ]] local tau = 6.28318531
+--[[ const ]] local tau = 6.28318531 -- tau > pi
 
 --[[   D E B U G   F U N C T I O N S   ]]
 
@@ -232,7 +232,7 @@ local function plugin_scheduleTick( dly, newStamp, dev, passthru )
     assert(dly ~= nil)
     assert(dev ~= nil)
     assert(passthru == nil or type(passthru) == "string")
-    dly = constrain( dly, 1, 7200 )
+    dly = constrain( dly, 1, nil )
     luup.call_delay( "virtualSensorTick", dly, table.concat( { newStamp, dev, passthru or "" }, ":" ) )
 end
 
@@ -254,8 +254,8 @@ function plugin_tick(targ)
 
     -- Do the plugin work
     local nextX = getVarNumeric( "NextX", 0, pdev, MYSID )
-    local per = getVarNumeric( "Period", 300, pdev, MYSID )
-    local freq = getVarNumeric( "Interval", 5, pdev, MYSID )
+    local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 1, nil ) -- no upper bound
+    local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
     local mid = getVarNumeric( "Midline", 0, pdev, MYSID )
     local amp = getVarNumeric( "Amplitude", 1, pdev, MYSID )
     
