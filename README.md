@@ -61,17 +61,26 @@ The default is 2.
 ## Operation ##
 
 Virtual Sensor is free-running. It survives Luup restarts and continues the function from its last
-known point. It should be understood, however, that when compared to actual timing, the restart
-would cause a "stretch" of time between two values. I suppose I could some day offer the option to
-tie the time computation to real time, but so far I haven't had the need (if you do, let me know!).
+known point. It should be understood, however, that when compared to real time, restarts
+cause a "stretch" of time between two values (on a graph against real time, this would appear
+as a flat spot). I suppose I could some day offer the option to
+tie the computation to a point in real time, but so far I haven't had the need (if you do, let me know!).
 
 Settings changes, particularly changes to the Period, may cause a sudden sharp change in Virtual
 Sensor's output. Consider changing a function period from 300 seconds to 30 seconds--if the running
-function is already beyond the 30 second mark when the change is made, the formula resets.
+function is already beyond the 30 second mark when the change is made, the formula must reset.
 
 For the security sensor function (motion/door/etc.), Virtual Sensor supports Armed and Disarmed
 states, controllable both in the UI and as usual through scenes and Lua. The value of ArmedTripped
 is implemented as it would be for any "hard" sensor.
+
+The generated values are the same for all sensor types. That is, if the plugin is configured to produce
+temperature values in the range of 10-30C, then reading the virtual sensor as a light sensor will
+yield lux values in that range, as will reading the humidity. One might think that the humidity could
+simply be mapped so that the 10-30 value range produces 0-100 humidity percentages, but in practice,
+this makes the sensor less useful--what if you really want to just test humidity in that small range?
+I recommend not "overloading" one sensor with too many functions. Create one to be the temperature
+sensor, and another to be the humidity sensor, etc. They're pretty lightweight and easy on resources.
 
 ## Scenes, Scripting, and Actions ##
 
@@ -115,3 +124,14 @@ sends events. In addition, the `ArmedTripped` state variable will track the stat
 The `SetArmed` service action is implemented, and takes a single `newArmedValue` parameter.
 Scene notification and triggers are provided for tripped or untripped when armed, and tripped
 or untripped regardless of armed state.
+
+## To Do ##
+
+On my plate for some time is perhaps the most vexing of "hidden" sensor values to Vera users: the
+battery level of battery-powered sensors. 
+
+Also on my queue for consideration is finding a way, if at all possible, to manipulate the timestamp
+on a sensor value. Vera/Luup's `variable_get()` function returns two pieces of data: the value of
+the specified service state variable, and the time at which it was last set. I have need to test
+the age of sensor values in one of my other plugins, but as yet, the ability to manipulate these
+values externally to that plugin has eluded me.
