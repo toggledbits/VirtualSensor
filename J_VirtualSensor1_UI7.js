@@ -64,15 +64,18 @@ var VirtualSensor = (function(api) {
             var html = "";
 
             html += "<style>";
-            html += ".tb-cgroup { padding: 0px 16px 0px 0px; width: 25%; }";
+            html += ".tb-cgroup { padding: 0px 16px 0px 0px; width: 24%; }";
             html += ".tb-large { font-size: 1.5em; }";
             html += ".tb-medium { font-size: 1.2em; }";
-            html += ".tb-red { color: red; }";
+            html += ".tb-red { color: red !important; font-weight: bold; }";
+            html += "div#message { color: #00a652; }";
             html += "</style>";
 
             html += '<div class="tb-large">';
             html += '<img src="https://www.toggledbits.com/assets/virtualsensor/sine.png" align="right" width="329" height="240">VirtualSensor generates sensor values as a sine wave. You can specify the period (1), peak amplitude (2), and midline (3) of the wave.';
             html += '</div>';
+
+            html += '<div class="row">';
 
             // Period
             html += "<div class=\"tb-cgroup pull-left\">";
@@ -91,6 +94,8 @@ var VirtualSensor = (function(api) {
             html += "<h2>Midline</h2><label for=\"midline\">Enter the midline value:</label><br/>";
             html += "<input type=\"text\" size=\"8\" class=\"numfield\" id=\"midline\" />";
             html += "</div>";
+            
+            html += '</div><div class="row">';
 
             // Duty Cycle
             html += "<div class=\"tb-cgroup pull-left\">";
@@ -116,7 +121,9 @@ var VirtualSensor = (function(api) {
             html += '</select>';
             html += "</div>";
 
-            html += "<div class=\"clearfix\"></div>";
+            html += '</div><div class="row">';
+
+            /* html += "<div class=\"clearfix\"></div>"; */
 
             html += '<div class="tb-large" id="message">&nbsp;</div>';
             
