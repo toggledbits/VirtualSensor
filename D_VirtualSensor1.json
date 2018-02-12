@@ -49,6 +49,12 @@
 					"ControlType": "multi_state_button",
 					"top": "0",
 					"left": "0",
+                    "Display": {
+                        "Top": 0,
+                        "Left": 0,
+                        "Width": 70,
+                        "Height": 24
+                    },
 					"states": [{
 							"Label": {
 								"lang_tag": "ui7_cmd_arm",
@@ -91,16 +97,69 @@
 						}
 					]
 				},
+                {
+					"ControlGroup": "1",
+					"ControlType": "multi_state_button",
+					"top": "0",
+					"left": "1",
+                    "Display": {
+                        "Top": 0,
+                        "Left": 90,
+                        "Width": 70,
+                        "Height": 24
+                    },
+					"states": [{
+							"Label": {
+								"lang_tag": "tb_enabled",
+								"text": "Enabled"
+							},
+							"Display": {
+								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+								"Variable": "Enabled",
+								"Value": "1"
+							},
+							"Command": {
+								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+								"Action": "SetEnabled",
+								"Parameters": [{
+									"Name": "newEnabledValue",
+									"Value": "1"
+								}]
+							},
+							"ControlCode": "tb_enable"
+						},
+						{
+							"Label": {
+								"lang_tag": "tb_disabled",
+								"text": "Disabled"
+							},
+							"Display": {
+								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+								"Variable": "Enabled",
+								"Value": "0"
+							},
+							"Command": {
+								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+								"Action": "SetEnabled",
+								"Parameters": [{
+									"Name": "newEnabledValue",
+									"Value": "0"
+								}]
+							},
+							"ControlCode": "tb_disable"
+						}
+					]
+				},
 				{
 					"ControlGroup": "1",
 					"ControlType": "variable",
-					"top": 0,
+					"top": 1,
 					"left": 0,
-					"HorizontalMultiplier": 3,
+					"HorizontalMultiplier": 1,
 					"Display": {
-						"Top": 16,
-						"Left": 96,
-						"Width": 288,
+						"Top": 60,
+						"Left": 0,
+						"Width": 320,
 						"Height": 32,
 						"Service": "urn:micasaverde-com:serviceId:GenericSensor1",
 						"Variable": "CurrentLevel"
@@ -119,7 +178,7 @@
 					},
 					"Label": {
 						"lang_tag": "tb_virtualsensor_about",
-						"text": "VirtualSensor ver 1.0 &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
+						"text": "VirtualSensor ver 1.1dev &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
 					}
 				},
 				{
