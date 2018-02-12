@@ -11,6 +11,7 @@
             luup.log("VirtualSensor Plugin START-UP!")
             VirtualSensor = require("L_VirtualSensor1")
             virtualSensorTick = VirtualSensor.plugin_tick
+            virtualSensorWatchCallback = VirtualSensor.plugin_watchCallback
             -- virtualSensorRequestHandler = VirtualSensor.requestHandler
             -- luup.register_handler("virtualSensorRequestHandler", "VirtualSensor")
             return VirtualSensor.plugin_init(dev)
@@ -44,6 +45,14 @@
             <run>
                 VirtualSensor.actionSetArmed(lul_device, lul_settings.newArmedValue)
                 return true
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>SetEnabled</name>
+            <run>
+                luup.variable_set( "urn:toggledbits-com:serviceId:VirtualSensor1", "Enabled",
+                    lul_settings.newEnabledValue, lul_device )
             </run>
         </action>
         <action>
