@@ -277,7 +277,7 @@ function plugin_tick( targ )
     end
 
     -- Do the plugin work
-    if getVarNumeric( MYSID, "Enabled", 1, pdev ) == 0 then
+    if getVarNumeric( "Enabled", 1, pdev, MYSID ) == 0 then
         D("plugin_tick() disabled, stopping")
         return
     end
@@ -379,7 +379,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
         elseif variable == "Interval" then
             D("plugin_watchCallback() Interval changed, starting new timer thread")
             runStamp = os.time()
-            plugin_scheduleTick( 1, runStamp, dev, "" )
+            plugin_scheduleTick( tonumber(newValue) or 1, runStamp, dev, "" )
         elseif variable == "Enabled" then
             local newValue = tonumber(newValue, 10) or 0
             if newValue == 0 then
@@ -416,12 +416,10 @@ function plugin_init(dev)
             local rc,rs,jj,ra
             D("plugin_init() detected ALTUI at %1", k)
             isALTUI = true
---[[
             rc,rs,jj,ra = luup.call_action("urn:upnp-org:serviceId:altui1", "RegisterPlugin",
                 { newDeviceType=MYTYPE, newScriptFile="J_VirtualSensor1_ALTUI.js", newDeviceDrawFunc="VirtualSensor_ALTUI.DeviceDraw" },
                 k )
             D("init() ALTUI's RegisterPlugin action returned resultCode=%1, resultString=%2, job=%3, returnArguments=%4", rc,rs,jj,ra)
-]]
         elseif v.device_type == "openLuup" then
             D("plugin_init() detected openLuup")
             isOpenLuup = true
