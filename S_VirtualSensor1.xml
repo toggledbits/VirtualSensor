@@ -86,6 +86,11 @@
             </argumentList>
         </action>
         <action>
+            <name>ResetBattery</name>
+            <argumentList>
+            </argumentList>
+        </action>
+        <action>
             <name>SetDebug</name>
             <argumentList>
                 <argument>

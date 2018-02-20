@@ -57,6 +57,13 @@
         </action>
         <action>
             <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>ResetBattery</name>
+            <run>
+                VirtualSensor.actionResetBattery( lul_device )
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
             <name>SetDebug</name>
             <run>
                 VirtualSensor.actionSetDebug( lul_device, lul_settings.debug )

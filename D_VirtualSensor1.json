@@ -165,16 +165,37 @@
 						"Variable": "CurrentLevel"
 					}
 				},
+                {
+                    "ControlType": "button",
+                    "top": "0",
+                    "left": "2",
+                    "Label": {
+                        "lang_tag": "tb_resetbattery",
+                        "text": "Reset Battery"
+                    },
+                    "Display": {
+                        "Top": 8,
+                        "Left": 200,
+                        "Width": 120,
+                        "Height": 24
+                    },
+                    "Command": {
+                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                        "Action": "ResetBattery",
+                        "Parameters": []
+                    },
+                    "ControlCode": "cmd_reset_battery"
+                },
 				{
 					"ControlType": "label",
 					"top": 0,
 					"left": 0,
 					"HorizontalMultiplier": 4,
 					"Display": {
-						"Top": 156,
+						"Top": 96,
 						"Left": 0,
 						"Width": 384,
-						"Height": 64
+						"Height": 24
 					},
 					"Label": {
 						"lang_tag": "tb_virtualsensor_about",
@@ -190,7 +211,7 @@
 						"text": "<b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.makersupport.com/toggledbits\">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!"
 					},
 					"Display": {
-						"Top": 216,
+						"Top": 126,
 						"Left": 0,
 						"Width": 320,
 						"Height": 96
