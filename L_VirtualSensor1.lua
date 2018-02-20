@@ -5,8 +5,6 @@
 -- This file is available under GPL 3.0. See LICENSE in documentation for info.
 -- -----------------------------------------------------------------------------
 
-if luup == nil then luup = {} end -- for lint/check
-
 module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
@@ -14,13 +12,13 @@ local _PLUGIN_VERSION = "1.1dev"
 local _PLUGIN_URL = "http://www.toggledbits.com/projects"
 local _CONFIGVERSION = 010100
 
-local debugMode = true
-local traceMode = false
+local debugMode = false
 
 local MYSID = "urn:toggledbits-com:serviceId:VirtualSensor1"
 local MYTYPE = "urn:schemas-toggledbits-com:device:VirtualSensor:1"
 
 local SECURITYSID = "urn:micasaverde-com:serviceId:SecuritySensor1"
+local HADEVICESID = "urn:micasaverde-com:serviceId:HaDevice1"
 
 local runStamp = 0
 local isALTUI = false
@@ -32,10 +30,10 @@ local isOpenLuup = false
 
 local function dump(t)
     if t == nil then return "nil" end
-    local k,v,str,val
     local sep = ""
     local str = "{ "
     for k,v in pairs(t) do
+        local val
         if type(v) == "table" then
             val = dump(v)
         elseif type(v) == "function" then
@@ -62,8 +60,10 @@ end
 
 local function L(msg, ...)
     local str
+    local level = 50
     if type(msg) == "table" then
         str = msg["prefix"] .. msg["msg"]
+        level = msg["level"] or level
     else
         str = _PLUGIN_NAME .. ": " .. msg
     end
@@ -85,8 +85,7 @@ local function L(msg, ...)
             return tostring(val)
         end
     )
-    luup.log(str)
-    -- if traceMode then trace('log',str) end
+    luup.log(str, level)
 end
 
 local function D(msg, ...)
@@ -107,30 +106,6 @@ local function getVarNumeric( name, dflt, dev, serviceId )
     s = tonumber(s, 10)
     if (s == nil) then return dflt end
     return s
-end
-
--- Take a string and split it around sep, returning table (indexed) of substrings
--- For example abc,def,ghi becomes t[1]=abc, t[2]=def, t[3]=ghi
--- Returns: table of values, count of values (integer ge 0)
-local function split(s, sep)
-    local t = {}
-    local n = 0
-    if s == nil or s == "" then return t,n end -- empty string returns nothing
-    local i,j
-    local k = 1
-    repeat
-        i, j = string.find(s, sep or "%s*,%s*", k)
-        if (i == nil) then
-            table.insert(t, string.sub(s, k, -1))
-            n = n + 1
-            break
-        else
-            table.insert(t, string.sub(s, k, i-1))
-            n = n + 1
-            k = j + 1
-        end
-    until k > string.len(s)
-    return t, n
 end
 
 -- Constraint the argument to the specified min/max
@@ -172,6 +147,15 @@ function actionSetArmed( dev, newArmed )
     luup.variable_set( SECURITYSID, "Armed", newArmed, dev )
 end
 
+function actionResetBattery( dev )
+    D("actionResetBattery(%1)", dev)
+    if getVarNumeric( "BatteryEmulation", 0, dev, MYSID ) > 0 then
+        luup.variable_set( MYSID, "BatteryBase", os.time(), dev )
+        luup.variable_set( HADEVICESID, "BatteryLevel", 100, dev )
+        luup.variable_set( HADEVICESID, "BatteryDate", os.time(), dev )
+    end
+end
+
 --[[   P L U G I N   C O R E   F U N C T I O N S   ]]
 
 -- Check current firmware for compatibility (called at startup by plugin_init)
@@ -206,6 +190,8 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "BaseTime", os.time(), dev )
         luup.variable_set( MYSID, "NextX", 0, dev )
         luup.variable_set( MYSID, "Continuity", 1, dev )
+        luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
+        luup.variable_set( MYSID, "BatteryReset", 0, dev )
         
         luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", dev )
         luup.variable_set( SECURITYSID, "Armed", 0, dev )
@@ -234,6 +220,8 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "Enabled", 1, dev )
         luup.variable_set( MYSID, "BaseTime", os.time(), dev )
         luup.variable_set( MYSID, "Continuity", 1, dev )
+        luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
+        luup.variable_set( MYSID, "BatteryReset", 0, dev )
         luup.variable_set( SECURITYSID, "LastTrip", 0, dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
     end
@@ -364,6 +352,39 @@ function plugin_tick( targ )
         nextDelay = math.min( nn, nextDelay )
     end
     
+    -- Battery emulation?
+    local batteryTime = getVarNumeric( "BatteryEmulation", 0, pdev, MYSID )
+    if batteryTime > 0 then
+        -- Battery updates at most once per minute
+        local batteryDate = getVarNumeric( "BatteryDate", 0, pdev, HADEVICESID )
+        if ( now - batteryDate ) >= getVarNumeric( "BatteryInterval", math.min( 1, math.floor( batteryTime / 30 ) ), pdev, MYSID ) then
+            local oldLevel = getVarNumeric( "BatteryLevel", 0, pdev, HADEVICESID )
+            if oldLevel == 0 then
+                if getVarNumeric( "BatteryReset", 0, pdev, MYSID ) ~= 0 then
+                    -- Reset time base for next update, which resets battery to 100% on next pass
+                    actionResetBattery( pdev )
+                end
+            else
+                local bBase = getVarNumeric( "BatteryBase", 0, pdev, MYSID )
+                if bBase == 0 then
+                    luup.variable_set( MYSID, "BatteryBase", now, pdev )
+                    bBase = now
+                end
+                local bDelta = now - bBase
+                local bLevel = 0
+                if bDelta <= batteryTime then
+                    bLevel = constrain( math.floor( 100 - math.exp( ( bDelta / batteryTime ) * 10.1 - 5.5 ) + 0.5 ), 0, 100 )
+                    -- bLevel = constrain( 100 - math.floor( bDelta * 100 / batteryTime + 0.5 ) , 0, 100 )
+                end
+                -- Vera semantics? Battery level set only when changes, but BatteryDate is always updated.
+                if bLevel ~= oldLevel then
+                    luup.variable_set( HADEVICESID, "BatteryLevel", bLevel, pdev )
+                end
+                luup.variable_set( HADEVICESID, "BatteryDate", now, pdev )
+            end
+        end
+    end
+    
     -- Schedule our next tick. Notice we pass through what we got.    
     plugin_scheduleTick( nextDelay, stepStamp, pdev, passthru )
 end
@@ -381,7 +402,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
             runStamp = os.time()
             plugin_scheduleTick( tonumber(newValue) or 1, runStamp, dev, "" )
         elseif variable == "Enabled" then
-            local newValue = tonumber(newValue, 10) or 0
+            newValue = tonumber(newValue, 10) or 0
             if newValue == 0 then
                 -- Stopping
                 D("plugin_watchCallback() stopping timer loop")
@@ -410,7 +431,6 @@ function plugin_init(dev)
     L("starting version %1 for device %2", _PLUGIN_VERSION, dev )
 
     -- Check for ALTUI and OpenLuup. ??? need quicker, cleaner check
-    local k,v
     for k,v in pairs(luup.devices) do
         if v.device_type == "urn:schemas-upnp-org:device:altui:1" then
             local rc,rs,jj,ra
