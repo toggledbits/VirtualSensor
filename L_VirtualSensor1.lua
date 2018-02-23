@@ -8,7 +8,7 @@
 module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.1dev"
+local _PLUGIN_VERSION = "1.1"
 local _PLUGIN_URL = "http://www.toggledbits.com/projects"
 local _CONFIGVERSION = 010100
 

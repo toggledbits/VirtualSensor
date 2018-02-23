@@ -139,7 +139,7 @@ var VirtualSensor = (function(api) {
             html += ' Note that due to the resolution of the timer, the full range of values may not be seen, including the mathematical min/max.';
             html += '</div>';
             
-			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.makersupport.com/toggledbits">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!</p>';
+			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.makersupport.com/toggledbits" target="_blank">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!</p>';
 
             // Push generated HTML to page
             api.setCpanelContent(html);
