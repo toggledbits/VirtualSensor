@@ -41,11 +41,17 @@
             <defaultValue>2</defaultValue>
             <shortCode>prec</shortCode>
         </stateVariable>
-        <stateVariable sendEvents="yes">
+        <stateVariable sendEvents="no">
             <name>DutyCycle</name>
             <dataType>string</dataType>
             <defaultValue>50</defaultValue>
             <shortCode>duty</shortCode>
+        </stateVariable>
+        <stateVariable sendEvents="yes">
+            <name>Enabled</name>
+            <dataType>ui1</dataType>
+            <defaultValue>0</defaultValue>
+            <shortCode>enabled</shortCode>
         </stateVariable>
     </serviceStateTable>
     <actionList>
@@ -67,6 +73,21 @@
                     <relatedStateVariable>Interval</relatedStateVariable>
                     <direction>out</direction>
                 </argument>
+            </argumentList>
+        </action>
+        <action>
+            <name>SetEnabled</name>
+            <argumentList>
+                <argument>
+                    <name>newEnabledValue</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>Enabled</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+        <action>
+            <name>ResetBattery</name>
+            <argumentList>
             </argumentList>
         </action>
         <action>

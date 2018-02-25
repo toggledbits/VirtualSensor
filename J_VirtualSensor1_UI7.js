@@ -14,6 +14,7 @@ var VirtualSensor = (function(api) {
         var interval = parseInt( jQuery( "input#interval" ).val() );
         var period = parseInt( jQuery( "input#period" ).val() );
         var duty = parseFloat( jQuery( "input#duty" ).val() );
+        var autountrip = api.getDeviceState( dev, "urn:micasaverde-com:serviceId:SecuritySensor1", "AutoUntrip" ) || 0;
         
         var msg;
         var el = jQuery("div#message");
@@ -37,8 +38,13 @@ var VirtualSensor = (function(api) {
             var q = 3.14159265 / 2.0;
             msg = "With these settings, the minimum value is " + ( Math.sin( q * 3 ) * amplitude + midline )
             + " and the maximum is " + ( Math.sin( q ) * amplitude + midline ) + ".";
+            /* Duty cycle. May be overridden by AutoUntrip. */
             var t = Math.round( period * duty / 100.0 );
-            msg += " The sensor will be tripped for about " + t + " seconds of every period.";
+            if ( autountrip > 0 && autountrip < t ) {
+                msg += " AutoUntrip is set to " + autountrip + " and will fire before the duty cycle specified.";
+            } else {
+                msg += " The sensor will be tripped for about " + t + " seconds of every period.";
+            }
         }
         if ( interval > ( period / 8.0 ) ) {
             msg += " Your interval may be a bit long (or your period too short) to produce a good range of values.";
@@ -111,7 +117,7 @@ var VirtualSensor = (function(api) {
 
             // Precision
             html += "<div class=\"tb-cgroup pull-left\">";
-            html += "<h2>Precision</h2><label for=\"interval\">Select the decimal precision of the sample values:</label><br/>";
+            html += "<h2>Precision</h2><label for=\"prec\">Select the decimal precision of the sample values:</label><br/>";
             html += "<select id='prec'><option value='5'>0.00000</option>";
             html += '<option value="4">0.0000</option>';
             html += '<option value="3">0.000</option>';
@@ -133,7 +139,7 @@ var VirtualSensor = (function(api) {
             html += ' Note that due to the resolution of the timer, the full range of values may not be seen, including the mathematical min/max.';
             html += '</div>';
             
-			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.makersupport.com/toggledbits">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!</p>';
+			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.makersupport.com/toggledbits" target="_blank">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!</p>';
 
             // Push generated HTML to page
             api.setCpanelContent(html);
@@ -142,7 +148,7 @@ var VirtualSensor = (function(api) {
             var s;
             s = parseInt(api.getDeviceState(myDevice, serviceId, "Interval"));
             if (isNaN(s))
-                s = 5;
+                s = "120";
             jQuery("input#interval").val(s).change( function( obj ) {
                 var newInterval = jQuery(this).val();
                 if (newInterval.match(/^[0-9]+$/) && newInterval > 0) {
@@ -153,7 +159,7 @@ var VirtualSensor = (function(api) {
 
             s = parseInt(api.getDeviceState(myDevice, serviceId, "Period"));
             if (isNaN(s))
-                s = 120;
+                s = "5";
             jQuery("input#period").val(s).change( function( obj ) {
                 var newVal = jQuery(this).val();
                 if (newVal.match(/^[0-9]+$/) && newVal > 0) {
@@ -164,7 +170,7 @@ var VirtualSensor = (function(api) {
             
             s = parseFloat(api.getDeviceState(myDevice, serviceId, "Amplitude"));
             if (isNaN(s))
-                s = 1.0;
+                s = "1.0";
             jQuery("input#amplitude").val(s).change( function( obj ) {
                 var newVal = parseFloat( jQuery(this).val() );
                 if ( ! isNaN( newVal ) ) {
@@ -175,7 +181,7 @@ var VirtualSensor = (function(api) {
             
             s = parseFloat(api.getDeviceState(myDevice, serviceId, "Midline"));
             if (isNaN(s))
-                s = 0.0;
+                s = "0.0";
             jQuery("input#midline").val(s).change( function( obj ) {
                 var newVal = parseFloat( jQuery(this).val() );
                 if ( ! isNaN( newVal ) ) {
@@ -186,7 +192,7 @@ var VirtualSensor = (function(api) {
 
             s = parseFloat(api.getDeviceState(myDevice, serviceId, "DutyCycle"));
             if (isNaN(s))
-                s = 50.0;
+                s = "50.0";
             jQuery("input#duty").val(s).change( function( obj ) {
                 var newVal = parseFloat( jQuery(this).val() );
                 if ( ! isNaN( newVal ) && newVal >= 0 && newVal <= 100 ) {
