@@ -8,7 +8,7 @@
 module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.1"
+local _PLUGIN_VERSION = "1.2dev"
 local _PLUGIN_URL = "http://www.toggledbits.com/projects"
 local _CONFIGVERSION = 010100
 
@@ -62,10 +62,10 @@ local function L(msg, ...)
     local str
     local level = 50
     if type(msg) == "table" then
-        str = msg["prefix"] .. msg["msg"]
-        level = msg["level"] or level
+        str = tostring(msg.prefix or _PLUGIN_NAME) .. ": " .. tostring(msg.msg)
+        level = msg.level or level
     else
-        str = _PLUGIN_NAME .. ": " .. msg
+        str = _PLUGIN_NAME .. ": " .. tostring(msg)
     end
     str = string.gsub(str, "%%(%d+)", function( n )
             n = tonumber(n, 10)
@@ -145,6 +145,16 @@ function actionSetArmed( dev, newArmed )
     newArmed = tonumber(newArmed,10) or 0
     if newArmed ~= 0 then newArmed = 1 end
     luup.variable_set( SECURITYSID, "Armed", newArmed, dev )
+end
+
+function actionTrip( dev )
+    D("actionTrip(%1)", dev)
+    trip( true, dev );
+end
+
+function actionReset( dev )
+    D("actionReset(%1)", dev)
+    trip( false, dev );
 end
 
 function actionResetBattery( dev )

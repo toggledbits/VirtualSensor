@@ -56,6 +56,16 @@
     </serviceStateTable>
     <actionList>
         <action>
+            <name>Trip</name>
+            <argumentList>
+            </argumentList>
+        </action>
+        <action>
+            <name>Reset</name>
+            <argumentList>
+            </argumentList>
+        </action>
+        <action>
             <name>SetInterval</name>
             <argumentList>
                 <argument>

@@ -49,6 +49,20 @@
         </action>
         <action>
             <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>Trip</name>
+            <run>
+                VirtualSensor.actionTrip( lul_device )
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>Reset</name>
+            <run>
+                VirtualSensor.actionReset( lul_device )
+            </run>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
             <name>SetEnabled</name>
             <run>
                 luup.variable_set( "urn:toggledbits-com:serviceId:VirtualSensor1", "Enabled",
