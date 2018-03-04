@@ -170,11 +170,59 @@
                     "top": "0",
                     "left": "2",
                     "Label": {
+                        "lang_tag": "tb_trip",
+                        "text": "Trip"
+                    },
+                    "Display": {
+                        "Top": 8,
+                        "Left": 200,
+                        "Width": 120,
+                        "Height": 24,
+                        "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                        "Variable": "Tripped",
+                        "Value": "1"
+                    },
+                    "Command": {
+                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                        "Action": "Trip",
+                        "Parameters": []
+                    },
+                    "ControlCode": "cmd_trip"
+                },
+                {
+                    "ControlType": "button",
+                    "top": "0",
+                    "left": "3",
+                    "Label": {
+                        "lang_tag": "tb_reset",
+                        "text": "Reset"
+                    },
+                    "Display": {
+                        "Top": 8,
+                        "Left": 330,
+                        "Width": 120,
+                        "Height": 24,
+                        "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                        "Variable": "Tripped",
+                        "Value": "0"
+                    },
+                    "Command": {
+                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                        "Action": "Reset",
+                        "Parameters": []
+                    },
+                    "ControlCode": "cmd_reset"
+                },
+                {
+                    "ControlType": "button",
+                    "top": "1",
+                    "left": "2",
+                    "Label": {
                         "lang_tag": "tb_resetbattery",
                         "text": "Reset Battery"
                     },
                     "Display": {
-                        "Top": 8,
+                        "Top": 40,
                         "Left": 200,
                         "Width": 120,
                         "Height": 24
@@ -199,7 +247,7 @@
 					},
 					"Label": {
 						"lang_tag": "tb_virtualsensor_about",
-						"text": "VirtualSensor ver 1.1 &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
+						"text": "VirtualSensor ver 1.2 &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
 					}
 				},
 				{
