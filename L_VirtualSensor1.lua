@@ -8,9 +8,9 @@
 module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.2"
+local _PLUGIN_VERSION = "1.3dev"
 local _PLUGIN_URL = "http://www.toggledbits.com/projects"
-local _CONFIGVERSION = 010100
+local _CONFIGVERSION = 010101
 
 local debugMode = false
 
@@ -157,6 +157,17 @@ function actionReset( dev )
     trip( false, dev );
 end
 
+function actionSetValue( dev, val )
+    D("actionSetValue(%1,%2)", dev, val)
+    val = tonumber(val)
+    if val ~= nil then
+        luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", val, dev )
+    end
+end
+
 function actionResetBattery( dev )
     D("actionResetBattery(%1)", dev)
     if getVarNumeric( "BatteryEmulation", 0, dev, MYSID ) > 0 then
@@ -234,6 +245,10 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
         luup.variable_set( SECURITYSID, "LastTrip", 0, dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
+    end
+    if rev < 010101 then
+        D("runOnce() updating config for rev 010101")
+        luup.variable_set( MYSID, "Alias", "", dev )
     end
 
     -- No matter what happens above, if our versions don't match, force that here/now.
@@ -482,4 +497,112 @@ end
 
 function plugin_getVersion()
     return _PLUGIN_VERSION, _PLUGIN_NAME, _CONFIGVERSION
+end
+
+local function getDevice( dev, pdev, v )
+    if v == nil then v = luup.devices[dev] end
+    local json = require("json")
+    if json == nil then json = require("dkjson") end
+    local devinfo = { 
+          devNum=dev
+        , ['type']=v.device_type
+        , description=v.description or ""
+        , room=v.room_num or 0
+        , udn=v.udn or ""
+        , id=v.id
+        , ['device_json'] = luup.attr_get( "device_json", dev )
+        , ['impl_file'] = luup.attr_get( "impl_file", dev )
+        , ['device_file'] = luup.attr_get( "device_file", dev )
+        , manufacturer = luup.attr_get( "manufacturer", dev ) or ""
+        , model = luup.attr_get( "model", dev ) or ""
+    }
+    local rc,t,httpStatus,uri
+    if isOpenLuup then
+        uri = "http://localhost:3480/data_request?id=status&DeviceNum=" .. dev .. "&output_format=json"
+    else
+        uri = "http://localhost/port_3480/data_request?id=status&DeviceNum=" .. dev .. "&output_format=json"
+    end
+    rc,t,httpStatus = luup.inet.wget(uri, 15)
+    if httpStatus ~= 200 or rc ~= 0 then 
+        devinfo['_comment'] = string.format( 'State info could not be retrieved, rc=%s, http=%s', tostring(rc), tostring(httpStatus) )
+        return devinfo
+    end
+    local d = json.decode(t)
+    local key = "Device_Num_" .. dev
+    if d ~= nil and d[key] ~= nil and d[key].states ~= nil then d = d[key].states else d = nil end
+    devinfo.states = d or {}
+    return devinfo
+end
+
+function requestHandler( lul_request, lul_parameters, lul_outputformat )
+    D("request(%1,%2,%3) luup.device=%4", lul_request, lul_parameters, lul_outputformat, luup.device)
+    local action = lul_parameters['action'] or lul_parameters['command'] or ""
+    local deviceNum = tonumber( lul_parameters['device'], 10 ) or luup.device
+    if action == "debug" then
+        local err,msg,job,args = luup.call_action( MYSID, "SetDebug", { debug=1 }, deviceNum )
+        return string.format("Device #%s result: %s, %s, %s, %s", tostring(deviceNum), tostring(err), tostring(msg), tostring(job), dump(args)), "text/plain"
+    end
+
+    if action == "status" then
+        local json = require("json")
+        if json == nil then json = require("dkjson") end
+        local st = {
+            name=_PLUGIN_NAME,
+            version=_PLUGIN_VERSION,
+            configversion=_CONFIGVERSION,
+            author="Patrick H. Rigney (rigpapa)",
+            url=_PLUGIN_URL,
+            ['type']=MYTYPE,
+            responder=luup.device,
+            timestamp=os.time(),
+            system = {
+                version=luup.version,
+                isOpenLuup=isOpenLuup,
+                isALTUI=isALTUI,
+                units=luup.attr_get( "TemperatureFormat", 0 ),
+            },            
+            devices={}
+        }
+        for k,v in pairs( luup.devices ) do
+            if v.device_type == MYTYPE then
+                local devinfo = getDevice( k, luup.device, v ) or {}
+                table.insert( st.devices, devinfo )
+            end
+        end
+        return json.encode( st ), "application/json"
+    elseif string.find("trip reset arm disarm setvalue", action) then
+        local alias = lul_parameters['alias'] or ""
+        local parm = {}
+        local devAction
+        local sid = MYSID
+        if action == "trip" then
+            devAction = "Trip"
+        elseif action == "arm" then
+            devAction = "SetArmed"
+            parm.newArmedValue = 1
+            sid = SECURITYSID
+        elseif action == "disarm" then
+            devAction = "SetArmed"
+            parm.newArmedValue = 0
+            sid = SECURITYSID
+        elseif action == "setvalue" then
+            devAction = "SetValue"
+            parm.newValue = lul_parameters['value']
+        else
+            devAction = "Reset"
+        end
+        local nDev = 0
+        for k,v in pairs( luup.devices ) do
+            if v.device_type == MYTYPE then
+                local da = luup.variable_get(MYSID, "Alias", k) or ""
+                if da ~= "" and ( alias == "*" or alias == da ) then
+                    luup.call_action( sid, devAction, parm, k)
+                    nDev = nDev + 1
+                end
+            end
+        end
+        return string.format("Done with %q for %d devices matching alias %q", action, nDev, alias), "text/plain"
+    else
+        return string.format("Action %q not implemented", action), "text/plain"
+    end
 end

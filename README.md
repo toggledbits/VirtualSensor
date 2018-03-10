@@ -1,5 +1,6 @@
-# VirtualSensor
-Virtual Sensor is a plugin for Vera home automation controllers that generates data and events for testing other plugins, scenes, scripts and program logic.
+# VirtualSensor #
+Virtual Sensor is a plugin for Vera home automation controllers that generates
+data and events for testing other plugins, scenes, scripts and program logic.
 
 ## Why? ##
 
@@ -7,6 +8,15 @@ I have written and maintain several plugins for Vera controllers. Many of them u
 input for various purposes, and sometimes testing with live data is too slow and tedious.
 So I cobbled together a plugin that can act as any kind of sensor native to Vera: temperature,
 motion/door (aka security), humidity, light, and generic (it does them all at once).
+
+VirtualSensor can also operate entirely in "manual" mode, meaning that the trip/reset state
+of its SecuritySensor1 service can be managed exclusively through the UI or scene/Lua/PLEG
+actions. It can also be managed by external web requests to the Vera, so an outside service
+could set the tripped/reset state of the device based on conditions entirely unknown to Vera.
+For example, BlueIris is popular NVR software for managing and recording IP security cameras,
+and it offers excellent motion detection, sound triggers, etc. Simple configuration within
+BlueIris would allow to set and reset the tripped state of a VirtualSensor, allowing it
+to operate as a motion sensor controlled by BlueIris reaction to what it sees in a camera.
 
 Virtual Sensor runs on Vera UI7, ALTUI, and openLuup.
 
@@ -125,13 +135,60 @@ The `SetArmed` service action is implemented, and takes a single `newArmedValue`
 Scene notification and triggers are provided for tripped or untripped when armed, and tripped
 or untripped regardless of armed state.
 
-## To Do ##
+The actions `Trip` and `Reset` are also available, to set and reset the *Tripped*
+state of the sensor, respectively. To prevent the function from automatically
+tripped and resetting the sensor and use these actions to exclusively control
+the state of the VirtualSensor, make sure the device stays in *Disabled* state.
 
-On my plate for some time is perhaps the most vexing of "hidden" sensor values to Vera users: the
-battery level of battery-powered sensors. 
+### Service urn:toggledbits-com:serviceId:VirtualSensor1 ###
 
-Also on my queue for consideration is finding a way, if at all possible, to manipulate the timestamp
-on a sensor value. Vera/Luup's `variable_get()` function returns two pieces of data: the value of
-the specified service state variable, and the time at which it was last set. I have need to test
-the age of sensor values in one of my other plugins, but as yet, the ability to manipulate these
-values externally to that plugin has eluded me.
+The `Alias` state variable sets an alias for the VirtualSensor. It is used
+in conjunction with the alternate web API described below, to identify one
+or more sensors (rather than using the Vera device ID).
+
+The `SetEnabled` service action can be invoked to enable or disable the
+VirtualSensor's formulaic operation and manipulation of its values. 
+To enable it, set the `newEnabledValue` parameter to 1; to disable it, 
+set it 0. When disabled, a VirtualSensor can still be tripped using the `Trip` 
+and `Reset` actions described above, have its value assigned via the `SetValue` 
+action described below, and controlled via the alternate web API, below.
+
+The `SetValue` service action sets a new value for the sensor. The value must
+be passed in the `newValue` parameter, and must be a number or a string that
+can be parsed to a number. When used, the sensor's value will be set to any
+valid value that is passed, regardless of the parameters of the function
+configured. The value will _not_ cause the *Tripped* state of the sensor to
+change based on the value and function configuration. This action is intended
+to be used only when the sensor is *Disabled*.
+
+## Alternate Web API for Control ##
+
+VirtualSensor (>=1.3) supports an alternate method of setting/resetting tripped state. By
+using the request URL below, one can set the trip or reset one or more VirtualSensors 
+that match the "alias" passed in the request. The alias must match the contents of the
+Alias state variable on one or more VirtualSensor devices.
+
+```http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=trip&alias=string
+
+http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=reset&alias=string
+```
+
+If the alias is given as "\*" (asterisk/star), all VirtualSensors with non-empty 
+aliases (on the Vera side) are acted upon.
+
+The advantages of using this method rather than the typical Vera action request are:
+1. The same alias can be used on multiple sensors, so they can be tripped or reset as a group
+rather than having to make multiple calls for each sensor.
+2. The aliases are names you assign, so that you do not have to bury Vera device numbers
+in your requests in external systems--were those to change later, your requests would 
+no longer work. If for
+some reason you need to rebuild your Vera, delete and recreate or reassign a sensor,
+all you need to do is make sure the new sensor has the right alias on the Vera side, 
+and your remote requests will continue to work without additional configuration changes.
+
+In addition to the `trip` and `reset` commands shown, there are also `arm`, `disarm`
+and `setvalue` actions that may be used with this method. The `setvalue` action
+takes an additional parameter (`value`) to be the new value assigned to the
+matching sensor(s). For example:
+
+```http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=setvalue&alias=test&value=1234```
