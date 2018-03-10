@@ -1,5 +1,5 @@
 # VirtualSensor #
-Virtual Sensor is a plugin for Vera home automation controllers that generates
+VirtualSensor is a plugin for Vera home automation controllers that generates
 data and events for testing other plugins, scenes, scripts and program logic.
 
 ## Why? ##
@@ -18,9 +18,39 @@ and it offers excellent motion detection, sound triggers, etc. Simple configurat
 BlueIris would allow to set and reset the tripped state of a VirtualSensor, allowing it
 to operate as a motion sensor controlled by BlueIris reaction to what it sees in a camera.
 
-Virtual Sensor runs on Vera UI7, ALTUI, and openLuup.
+VirtualSensor runs on Vera UI7, ALTUI, and openLuup.
 
-## Configuration ##
+## Operation ##
+
+In *disabled* state, VirtualSensor is static and will change only when acted
+upon by the UI buttons, scenes, Lua, PLEG, API requests, etc.
+
+In its *enabled* state, VirtualSensor automatically changes its values
+according to the configuration of its free-running function generator.
+It survives Luup restarts and continues the function from a fixed starting
+point in time, meaning, if the function is configured to make a full cycle
+every twenty minutes, it will stay on time even if Luup restarts in
+the middle of the period. Configuration of the function generator is described
+in detail in the next section.
+
+Settings changes, particularly changes to the Period, may cause a sudden sharp change in Virtual
+Sensor's output. Consider changing a function period from 300 seconds to 30 seconds--if the running
+function is already beyond the 30 second mark when the change is made, the formula must reset.
+
+For the security sensor function (motion/door/etc.), VirtualSensor supports Armed and Disarmed
+states, controllable both in the UI and as usual through scenes and Lua. The value of *ArmedTripped*
+is implemented as it would be for any "hard" sensor. VirtualSensor also supports *AutoUntrip*;
+if non-zero, the sensor will automatically untrip that many seconds after tripping.
+
+The generated values are the same for all sensor types. That is, if the plugin is configured to produce
+temperature values in the range of 10-30C, then reading the VirtualSensor as a light sensor will
+yield lux values in that range, as will reading the humidity. One might think that the humidity could
+simply be mapped so that the 10-30 value range produces 0-100 humidity percentages, but in practice,
+this makes the sensor less useful--what if you really want to just test humidity in that small range?
+I recommend not "overloading" one sensor with too many functions. Create one to be the temperature
+sensor, and another to be the humidity sensor, etc. They're pretty lightweight and easy on resources.
+
+## Function Generator Configuration ##
 
 In my original version, there was no UI--configuration happened through direct manipulation of
 state variables. This released version offers a simple GUI for configuration. Here are the
@@ -43,11 +73,11 @@ at 3/4 of the period.
 
 The midline offsets the "zero" of the function. In combination with the amplitude, this allows
 any range of values to be produced. For example, with a midline of 68 and an amplitude of 2,
-Virtual Sensor will generate values in the range of 66 (68 - 2) to 70 (68 + 2).
+VirtualSensor will generate values in the range of 66 (68 - 2) to 70 (68 + 2).
 
 ### Duty Cycle ###
 
-In proving the binary sensor state "tripped," Virtual Sensor uses the duty cycle to determine
+In proving the binary sensor state "tripped," VirtualSensor uses the duty cycle to determine
 what percentage of the period will be report in tripped state. For example, settings the Period
 to 300 seconds and the duty cycle to 5% will result in a sensor that is tripped 15 seconds
 out of every five minutes. The tripped period is always contiguous and at the beginning of the period.
@@ -65,41 +95,12 @@ or scripts should not expect to encounter the peak values explicitly.
 
 ### Precision ###
 
-The precision simply sets how many decimals Virtual Sensor will provide in its numeric sensor values.
+The precision simply sets how many decimals VirtualSensor will provide in its numeric sensor values.
 The default is 2.
-
-## Operation ##
-
-In *Disabled* state, VirtualSensor is static and will change only when acted
-upon by the UI buttons, scenes, Lua, PLEG, API requests, etc.
-
-In its *Enabled* state, Virtual Sensor automatically changes its values
-according to the configuration of its free-running function generator.
-It survives Luup restarts and continues the function from a fixed starting
-point in time, meaning, if the function is configured to make a full cycle
-every twenty minutes, it will stay on time even if Luup restarts in
-the middle of the period.
-
-Settings changes, particularly changes to the Period, may cause a sudden sharp change in Virtual
-Sensor's output. Consider changing a function period from 300 seconds to 30 seconds--if the running
-function is already beyond the 30 second mark when the change is made, the formula must reset.
-
-For the security sensor function (motion/door/etc.), Virtual Sensor supports Armed and Disarmed
-states, controllable both in the UI and as usual through scenes and Lua. The value of *ArmedTripped*
-is implemented as it would be for any "hard" sensor. VirtualSensor also supports *AutoUntrip*;
-if non-zero, the sensor will automatically untrip that many seconds after tripping.
-
-The generated values are the same for all sensor types. That is, if the plugin is configured to produce
-temperature values in the range of 10-30C, then reading the VirtualSensor as a light sensor will
-yield lux values in that range, as will reading the humidity. One might think that the humidity could
-simply be mapped so that the 10-30 value range produces 0-100 humidity percentages, but in practice,
-this makes the sensor less useful--what if you really want to just test humidity in that small range?
-I recommend not "overloading" one sensor with too many functions. Create one to be the temperature
-sensor, and another to be the humidity sensor, etc. They're pretty lightweight and easy on resources.
 
 ## Scenes, Scripting, and Actions ##
 
-Virtual Sensor provides the values, events, and actions typical to the sensors it attempts to
+VirtualSensor provides the values, events, and actions typical to the sensors it attempts to
 mimic.
 
 ### Service urn:upnp-org:serviceId:TemperatureSensor1 ###
@@ -176,10 +177,10 @@ This action is intended to be used only when the sensor is *Disabled*
 ## Alternate Web API for Control ##
 
 VirtualSensor (>=1.3) supports an alternate method of setting/resetting tripped
-state arming/disarming, or setting a sensor's value. By using the request URL
+state, arming/disarming, or setting a sensor's value. By using the request URL
 below, one can set the trip or reset one or more VirtualSensors that match the
 "alias" passed in the request. The alias must match the contents of the
-Alias state variable on one or more VirtualSensor devices.
+`Alias` state variable on one or more VirtualSensor devices.
 
 ```
 http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=trip&alias=string
@@ -187,8 +188,8 @@ http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=trip&alias
 http://your-vera-ip/port_3480/data_request?id=lr_VirtualSensor&action=reset&alias=string
 ```
 
-If the alias is given as "\*" (asterisk/star), all VirtualSensors with non-empty
-aliases (on the Vera side) are acted upon.
+If the alias is given as "\*" (just an asterisk/star), all VirtualSensors 
+*with non-empty aliases* (on the Vera side) are acted upon.
 
 The advantages of using this method rather than the typical Vera action request
 are:
