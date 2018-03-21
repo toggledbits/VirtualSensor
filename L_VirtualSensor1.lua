@@ -1,7 +1,7 @@
 -- -----------------------------------------------------------------------------
 -- L_VirtualSensor.lua
 -- Copyright 2017,2018 Patrick H. Rigney, All Rights Reserved
--- http://www.toggledbits.com/projects
+-- http://www.toggledbits.com/sitesensor
 -- This file is available under GPL 3.0. See LICENSE in documentation for info.
 -- -----------------------------------------------------------------------------
 
@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
 local _PLUGIN_VERSION = "1.3dev"
-local _PLUGIN_URL = "http://www.toggledbits.com/projects"
+local _PLUGIN_URL = "http://www.toggledbits.com/sitesensor"
 local _CONFIGVERSION = 010101
 
 local debugMode = false
