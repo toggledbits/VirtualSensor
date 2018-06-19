@@ -128,7 +128,11 @@ local function trip( flag, pdev )
     local currTrip = getVarNumeric( "Tripped", 0, pdev, SECURITYSID )
     if currTrip ~= val then
         luup.variable_set( SECURITYSID, "Tripped", val, pdev )
-        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them
+        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them.
+        -- Note, the semantics of ArmedTripped are such that it changes only when Armed=1
+        -- AND there's an edge (change) to Tripped. If Armed is changed from 0 to 1,
+        -- ArmedTripped is not changed, even if Tripped=1 at that moment; it will change
+        -- only when Tripped is explicitly set.
     end
     --[[ TripInhibit is our copy of Tripped, because Luup will change Tripped
          behind our back when AutoUntrip > 0--it will reset Tripped after
