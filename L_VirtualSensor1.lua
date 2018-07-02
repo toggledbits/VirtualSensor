@@ -8,9 +8,9 @@
 module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.3dev"
+local _PLUGIN_VERSION = "1.3develop"
 local _PLUGIN_URL = "http://www.toggledbits.com/sitesensor"
-local _CONFIGVERSION = 010101
+local _CONFIGVERSION = 010200
 
 local debugMode = false
 
@@ -128,7 +128,11 @@ local function trip( flag, pdev )
     local currTrip = getVarNumeric( "Tripped", 0, pdev, SECURITYSID )
     if currTrip ~= val then
         luup.variable_set( SECURITYSID, "Tripped", val, pdev )
-        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them
+        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them.
+        -- Note, the semantics of ArmedTripped are such that it changes only when Armed=1
+        -- AND there's an edge (change) to Tripped. If Armed is changed from 0 to 1,
+        -- ArmedTripped is not changed, even if Tripped=1 at that moment; it will change
+        -- only when Tripped is explicitly set.
     end
     --[[ TripInhibit is our copy of Tripped, because Luup will change Tripped
          behind our back when AutoUntrip > 0--it will reset Tripped after
@@ -226,6 +230,9 @@ local function plugin_runOnce(dev)
 
         luup.variable_set( "urn:micasaverde-com:serviceId:HaDevice1", "ModeSetting", "1:;2:;3:;4:", dev )
         
+        luup.attr_set( "category_num", 4, dev )
+        luup.attr_set( "subcategory_num", "", dev )
+
         luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
         return -- this branch must return
     end
@@ -249,6 +256,11 @@ local function plugin_runOnce(dev)
     if rev < 010101 then
         D("runOnce() updating config for rev 010101")
         luup.variable_set( MYSID, "Alias", "", dev )
+    end
+    if rev < 010200 then
+        D("runOnce() updating config for rev 010200")
+        luup.attr_set( "category_num", 4, dev )
+        luup.attr_set( "subcategory_num", "", dev )
     end
 
     -- No matter what happens above, if our versions don't match, force that here/now.
