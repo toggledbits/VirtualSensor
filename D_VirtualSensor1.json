@@ -1,6 +1,6 @@
 {
-	"default_icon": "https://www.toggledbits.com/assets/virtualsensor/virtualsensor-default.png",
-	"state_icons": [
+    "default_icon": "https://www.toggledbits.com/assets/virtualsensor/virtualsensor-default.png",
+    "state_icons": [
             {
                 "img": "https://www.toggledbits.com/assets/virtualsensor/virtualsensor-tripped.png",
                 "conditions": [{
@@ -9,7 +9,7 @@
                     "operator": "==",
                     "value": 1
                 }]
-			},
+            },
             {
                 "img": "https://www.toggledbits.com/assets/virtualsensor/virtualsensor-armed.png",
                 "conditions": [{
@@ -19,152 +19,152 @@
                     "value": 1
                 }]
             }
-	],
-	"x": "2",
-	"y": "4",
-	"inScene": "1",
-	"Tabs": [{
-			"Label": {
-				"lang_tag": "ui7_tabname_control",
-				"text": "Control"
-			},
-			"Position": "0",
-			"TabType": "flash",
-			"top_navigation_tab": 1,
-			"TopNavigationTab": 1,
-			"ControlGroup": [{
-				"id": "1",
-				"isSingle": "1",
-				"scenegroup": "1"
-			}],
-			"SceneGroup": [{
-				"id": "1",
-				"top": "0",
-				"left": "1",
-				"x": "2",
-				"y": "1"
-			}],
-			"Control": [{
-					"ControlGroup": "1",
-					"ControlType": "multi_state_button",
-					"top": "0",
-					"left": "0",
+    ],
+    "x": "2",
+    "y": "4",
+    "inScene": "1",
+    "Tabs": [{
+            "Label": {
+                "lang_tag": "ui7_tabname_control",
+                "text": "Control"
+            },
+            "Position": "0",
+            "TabType": "flash",
+            "top_navigation_tab": 1,
+            "TopNavigationTab": 1,
+            "ControlGroup": [{
+                "id": "1",
+                "isSingle": "1",
+                "scenegroup": "1"
+            }],
+            "SceneGroup": [{
+                "id": "1",
+                "top": "0",
+                "left": "1",
+                "x": "2",
+                "y": "1"
+            }],
+            "Control": [{
+                    "ControlGroup": "1",
+                    "ControlType": "multi_state_button",
+                    "top": "0",
+                    "left": "0",
                     "Display": {
                         "Top": 0,
                         "Left": 0,
                         "Width": 70,
                         "Height": 24
                     },
-					"states": [{
-							"Label": {
-								"lang_tag": "ui7_cmd_arm",
-								"text": "Armed"
-							},
-							"Display": {
-								"Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-								"Variable": "Armed",
-								"Value": "1"
-							},
-							"Command": {
-								"Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-								"Action": "SetArmed",
-								"Parameters": [{
-									"Name": "newArmedValue",
-									"Value": "1"
-								}]
-							},
-							"ControlCode": "arm_armed"
-						},
-						{
-							"Label": {
-								"lang_tag": "ui7_cmd_bypass",
-								"text": "Disarmed"
-							},
-							"Display": {
-								"Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-								"Variable": "Armed",
-								"Value": "0"
-							},
-							"Command": {
-								"Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-								"Action": "SetArmed",
-								"Parameters": [{
-									"Name": "newArmedValue",
-									"Value": "0"
-								}]
-							},
-							"ControlCode": "arm_disarmed"
-						}
-					]
-				},
+                    "states": [{
+                            "Label": {
+                                "lang_tag": "ui7_cmd_arm",
+                                "text": "Armed"
+                            },
+                            "Display": {
+                                "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                                "Variable": "Armed",
+                                "Value": "1"
+                            },
+                            "Command": {
+                                "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                                "Action": "SetArmed",
+                                "Parameters": [{
+                                    "Name": "newArmedValue",
+                                    "Value": "1"
+                                }]
+                            },
+                            "ControlCode": "arm_armed"
+                        },
+                        {
+                            "Label": {
+                                "lang_tag": "ui7_cmd_bypass",
+                                "text": "Disarmed"
+                            },
+                            "Display": {
+                                "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                                "Variable": "Armed",
+                                "Value": "0"
+                            },
+                            "Command": {
+                                "Service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                                "Action": "SetArmed",
+                                "Parameters": [{
+                                    "Name": "newArmedValue",
+                                    "Value": "0"
+                                }]
+                            },
+                            "ControlCode": "arm_disarmed"
+                        }
+                    ]
+                },
                 {
-					"ControlGroup": "1",
-					"ControlType": "multi_state_button",
-					"top": "0",
-					"left": "1",
+                    "ControlGroup": "1",
+                    "ControlType": "multi_state_button",
+                    "top": "0",
+                    "left": "1",
                     "Display": {
                         "Top": 0,
                         "Left": 90,
                         "Width": 70,
                         "Height": 24
                     },
-					"states": [{
-							"Label": {
-								"lang_tag": "tb_enabled",
-								"text": "Enabled"
-							},
-							"Display": {
-								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-								"Variable": "Enabled",
-								"Value": "1"
-							},
-							"Command": {
-								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-								"Action": "SetEnabled",
-								"Parameters": [{
-									"Name": "newEnabledValue",
-									"Value": "1"
-								}]
-							},
-							"ControlCode": "tb_enable"
-						},
-						{
-							"Label": {
-								"lang_tag": "tb_disabled",
-								"text": "Disabled"
-							},
-							"Display": {
-								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-								"Variable": "Enabled",
-								"Value": "0"
-							},
-							"Command": {
-								"Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-								"Action": "SetEnabled",
-								"Parameters": [{
-									"Name": "newEnabledValue",
-									"Value": "0"
-								}]
-							},
-							"ControlCode": "tb_disable"
-						}
-					]
-				},
-				{
-					"ControlGroup": "1",
-					"ControlType": "variable",
-					"top": 1,
-					"left": 0,
-					"HorizontalMultiplier": 1,
-					"Display": {
-						"Top": 60,
-						"Left": 0,
-						"Width": 320,
-						"Height": 32,
-						"Service": "urn:micasaverde-com:serviceId:GenericSensor1",
-						"Variable": "CurrentLevel"
-					}
-				},
+                    "states": [{
+                            "Label": {
+                                "lang_tag": "tb_enabled",
+                                "text": "Enabled"
+                            },
+                            "Display": {
+                                "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                                "Variable": "Enabled",
+                                "Value": "1"
+                            },
+                            "Command": {
+                                "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                                "Action": "SetEnabled",
+                                "Parameters": [{
+                                    "Name": "newEnabledValue",
+                                    "Value": "1"
+                                }]
+                            },
+                            "ControlCode": "tb_enable"
+                        },
+                        {
+                            "Label": {
+                                "lang_tag": "tb_disabled",
+                                "text": "Disabled"
+                            },
+                            "Display": {
+                                "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                                "Variable": "Enabled",
+                                "Value": "0"
+                            },
+                            "Command": {
+                                "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
+                                "Action": "SetEnabled",
+                                "Parameters": [{
+                                    "Name": "newEnabledValue",
+                                    "Value": "0"
+                                }]
+                            },
+                            "ControlCode": "tb_disable"
+                        }
+                    ]
+                },
+                {
+                    "ControlGroup": "1",
+                    "ControlType": "variable",
+                    "top": 1,
+                    "left": 0,
+                    "HorizontalMultiplier": 1,
+                    "Display": {
+                        "Top": 60,
+                        "Left": 0,
+                        "Width": 320,
+                        "Height": 32,
+                        "Service": "urn:micasaverde-com:serviceId:GenericSensor1",
+                        "Variable": "CurrentLevel"
+                    }
+                },
                 {
                     "ControlType": "button",
                     "top": "0",
@@ -234,185 +234,185 @@
                     },
                     "ControlCode": "cmd_reset_battery"
                 },
-				{
-					"ControlType": "label",
-					"top": 0,
-					"left": 0,
-					"HorizontalMultiplier": 4,
-					"Display": {
-						"Top": 96,
-						"Left": 0,
-						"Width": 384,
-						"Height": 24
-					},
-					"Label": {
-						"lang_tag": "tb_virtualsensor_about",
-						"text": "VirtualSensor ver 1.2 &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
-					}
-				},
-				{
-					"ControlType": "label",
-					"top": 0,
-					"left": 0,
-					"Label": {
-						"lang_tag": "tb_sitesensor_donate",
-						"text": "<b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.makersupport.com/toggledbits\">a one-time &ldquo;tip&rdquo;, or a monthly $1 donation</a>. I am grateful for any support you choose to give!"
-					},
-					"Display": {
-						"Top": 126,
-						"Left": 0,
-						"Width": 320,
-						"Height": 96
-					}
-				}
-			]
-		},
-		{
-			"Label": {
-				"lang_tag": "tb_virtualsensor_settings",
-				"text": "Settings"
-			},
-			"Position": "1",
-			"TabType": "javascript",
-			"ScriptName": "J_VirtualSensor1_UI7.js",
-			"Function": "VirtualSensor.configurePlugin"
-		},
-		{
-			"Label": {
-				"lang_tag": "ui7_advanced",
-				"text": "Advanced"
-			},
-			"Position": "2",
-			"TabType": "javascript",
-			"ScriptName": "shared.js",
-			"Function": "advanced_device"
-		},
-		{
-			"Label": {
-				"lang_tag": "ui7_logs",
-				"text": "Logs"
-			},
-			"Position": "3",
-			"TabType": "javascript",
-			"ScriptName": "shared.js",
-			"Function": "device_logs"
-		},
-		{
-			"Label": {
-				"lang_tag": "ui7_notifications",
-				"text": "Notifications"
-			},
-			"Position": "4",
-			"TabType": "javascript",
-			"ScriptName": "shared.js",
-			"Function": "device_notifications"
-		},
-		{
-			"Label": {
-				"lang_tag": "ui7_device_scenes",
-				"text": "Scenes"
-			},
-			"Position": "5",
-			"TabType": "javascript",
-			"ScriptName": "shared.js",
-			"Function": "device_scenes"
-		}
-	],
-	"sceneList": {
-		"group_1": {
-			"cmd_1": {
-				"label": "Arm",
-				"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-				"action": "SetArmed",
-				"arguments": {
-					"newArmedValue": "1"
-				},
-				"display": {
-					"service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-					"variable": "Armed",
-					"value": "1"
-				}
-			},
-			"cmd_2": {
-				"label": "Bypass",
-				"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-				"action": "SetArmed",
-				"arguments": {
-					"newTargetValue": "0"
-				},
-				"display": {
-					"service": "urn:micasaverde-com:serviceId:SecuritySensor1",
-					"variable": "Armed",
-					"value": "0"
-				}
-			}
-		}
-	},
-	"eventList2": [
+                {
+                    "ControlType": "label",
+                    "top": 0,
+                    "left": 0,
+                    "HorizontalMultiplier": 4,
+                    "Display": {
+                        "Top": 96,
+                        "Left": 0,
+                        "Width": 384,
+                        "Height": 24
+                    },
+                    "Label": {
+                        "lang_tag": "tb_virtualsensor_about",
+                        "text": "VirtualSensor ver 1.3 &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
+                    }
+                },
+                {
+                    "ControlType": "label",
+                    "top": 0,
+                    "left": 0,
+                    "Label": {
+                        "lang_tag": "tb_virtualsensor_donate",
+                        "text": "<b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.toggledbits.com/donate\">a small donation</a>. I am grateful for any support you choose to give!"
+                    },
+                    "Display": {
+                        "Top": 126,
+                        "Left": 0,
+                        "Width": 320,
+                        "Height": 96
+                    }
+                }
+            ]
+        },
         {
-			"id": 1,
-			"label": {
-				"lang_tag": "tb_an_armed_sitesensor_is_tripped",
-				"text": "Whenever _DEVICE_NAME_ is armed and tripped"
-			},
-			"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-			"serviceStateTable": {
-				"Armed": {
-					"value": "1",
-					"comparisson": "="
-				},
-				"Tripped": {
-					"value": "1",
-					"comparisson": "="
-				}
-			}
-		},
-		{
-			"id": 2,
-			"label": {
-				"lang_tag": "tb_an_armed_sitesensor_is_not_tripped",
-				"text": "Whenever _DEVICE_NAME_ is armed and restores from tripped"
-			},
-			"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-			"serviceStateTable": {
-				"Armed": {
-					"value": "1",
-					"comparisson": "="
-				},
-				"Tripped": {
-					"value": "0",
-					"comparisson": "="
-				}
-			}
-		},
-		{
-			"id": 3,
-			"label": {
-				"lang_tag": "tb_sitesensor_is_tripped",
-				"text": "Whenever _DEVICE_NAME_ is tripped whether it is armed or disarmed"
-			},
-			"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-			"serviceStateTable": {
-				"Tripped": {
-					"value": "1",
-					"comparisson": "="
-				}
-			}
-		},
-		{
-			"id": 4,
-			"label": {
-				"lang_tag": "tb_sitesensor_is_not_tripped",
-				"text": "Whenever _DEVICE_NAME_ restores from tripped whether it is armed or disarmed"
-			},
-			"serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
-			"serviceStateTable": {
-				"Tripped": {
-					"value": "0",
-					"comparisson": "="
-				}
-			}
-		},
+            "Label": {
+                "lang_tag": "tb_virtualsensor_settings",
+                "text": "Settings"
+            },
+            "Position": "1",
+            "TabType": "javascript",
+            "ScriptName": "J_VirtualSensor1_UI7.js",
+            "Function": "VirtualSensor.configurePlugin"
+        },
+        {
+            "Label": {
+                "lang_tag": "ui7_advanced",
+                "text": "Advanced"
+            },
+            "Position": "2",
+            "TabType": "javascript",
+            "ScriptName": "shared.js",
+            "Function": "advanced_device"
+        },
+        {
+            "Label": {
+                "lang_tag": "ui7_logs",
+                "text": "Logs"
+            },
+            "Position": "3",
+            "TabType": "javascript",
+            "ScriptName": "shared.js",
+            "Function": "device_logs"
+        },
+        {
+            "Label": {
+                "lang_tag": "ui7_notifications",
+                "text": "Notifications"
+            },
+            "Position": "4",
+            "TabType": "javascript",
+            "ScriptName": "shared.js",
+            "Function": "device_notifications"
+        },
+        {
+            "Label": {
+                "lang_tag": "ui7_device_scenes",
+                "text": "Scenes"
+            },
+            "Position": "5",
+            "TabType": "javascript",
+            "ScriptName": "shared.js",
+            "Function": "device_scenes"
+        }
+    ],
+    "sceneList": {
+        "group_1": {
+            "cmd_1": {
+                "label": "Arm",
+                "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                "action": "SetArmed",
+                "arguments": {
+                    "newArmedValue": "1"
+                },
+                "display": {
+                    "service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                    "variable": "Armed",
+                    "value": "1"
+                }
+            },
+            "cmd_2": {
+                "label": "Bypass",
+                "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                "action": "SetArmed",
+                "arguments": {
+                    "newTargetValue": "0"
+                },
+                "display": {
+                    "service": "urn:micasaverde-com:serviceId:SecuritySensor1",
+                    "variable": "Armed",
+                    "value": "0"
+                }
+            }
+        }
+    },
+    "eventList2": [
+        {
+            "id": 1,
+            "label": {
+                "lang_tag": "tb_an_armed_virtualsensor_is_tripped",
+                "text": "Whenever _DEVICE_NAME_ is armed and tripped"
+            },
+            "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+            "serviceStateTable": {
+                "Armed": {
+                    "value": "1",
+                    "comparisson": "="
+                },
+                "Tripped": {
+                    "value": "1",
+                    "comparisson": "="
+                }
+            }
+        },
+        {
+            "id": 2,
+            "label": {
+                "lang_tag": "tb_an_armed_virtualsensor_is_not_tripped",
+                "text": "Whenever _DEVICE_NAME_ is armed and restores from tripped"
+            },
+            "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+            "serviceStateTable": {
+                "Armed": {
+                    "value": "1",
+                    "comparisson": "="
+                },
+                "Tripped": {
+                    "value": "0",
+                    "comparisson": "="
+                }
+            }
+        },
+        {
+            "id": 3,
+            "label": {
+                "lang_tag": "tb_virtualsensor_is_tripped",
+                "text": "Whenever _DEVICE_NAME_ is tripped whether it is armed or disarmed"
+            },
+            "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+            "serviceStateTable": {
+                "Tripped": {
+                    "value": "1",
+                    "comparisson": "="
+                }
+            }
+        },
+        {
+            "id": 4,
+            "label": {
+                "lang_tag": "tb_virtualsensor_is_not_tripped",
+                "text": "Whenever _DEVICE_NAME_ restores from tripped whether it is armed or disarmed"
+            },
+            "serviceId": "urn:micasaverde-com:serviceId:SecuritySensor1",
+            "serviceStateTable": {
+                "Tripped": {
+                    "value": "0",
+                    "comparisson": "="
+                }
+            }
+        },
         {
             "id": 5,
             "label": {
@@ -605,6 +605,6 @@
                 }
             }]
         }
-	],
-	"device_type": "urn:schemas-toggledbits-com:device:VirtualSensor:1"
+    ],
+    "device_type": "urn:schemas-toggledbits-com:device:VirtualSensor:1"
 }

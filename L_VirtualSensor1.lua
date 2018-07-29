@@ -1,16 +1,17 @@
 -- -----------------------------------------------------------------------------
 -- L_VirtualSensor.lua
 -- Copyright 2017,2018 Patrick H. Rigney, All Rights Reserved
--- http://www.toggledbits.com/projects
+-- http://www.toggledbits.com/sitesensor
 -- This file is available under GPL 3.0. See LICENSE in documentation for info.
 -- -----------------------------------------------------------------------------
 
 module("L_VirtualSensor1", package.seeall)
 
+local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.2"
-local _PLUGIN_URL = "http://www.toggledbits.com/projects"
-local _CONFIGVERSION = 010100
+local _PLUGIN_VERSION = "1.3"
+local _PLUGIN_URL = "http://www.toggledbits.com/sitesensor"
+local _CONFIGVERSION = 010201
 
 local debugMode = false
 
@@ -115,6 +116,16 @@ local function constrain( n, nMin, nMax )
     return n
 end
 
+-- Split string to array of strip on separator
+local function split( str, sep )
+    if sep == nil then sep = "," end
+    local arr = {}
+    if #str == 0 then return arr, 0 end
+    local rest = string.gsub( str or "", "([^" .. sep .. "]*)" .. sep, function( m ) table.insert( arr, m ) return "" end )
+    table.insert( arr, rest )
+    return arr, #arr
+end
+
 -- Lua has no ternary op, so fake one
 local function iif( b, t, f )
     if b then return t end
@@ -128,7 +139,11 @@ local function trip( flag, pdev )
     local currTrip = getVarNumeric( "Tripped", 0, pdev, SECURITYSID )
     if currTrip ~= val then
         luup.variable_set( SECURITYSID, "Tripped", val, pdev )
-        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them
+        -- We don't need to worry about LastTrip or ArmedTripped, as Luup manages them.
+        -- Note, the semantics of ArmedTripped are such that it changes only when Armed=1
+        -- AND there's an edge (change) to Tripped. If Armed is changed from 0 to 1,
+        -- ArmedTripped is not changed, even if Tripped=1 at that moment; it will change
+        -- only when Tripped is explicitly set.
     end
     --[[ TripInhibit is our copy of Tripped, because Luup will change Tripped
          behind our back when AutoUntrip > 0--it will reset Tripped after
@@ -155,6 +170,17 @@ end
 function actionReset( dev )
     D("actionReset(%1)", dev)
     trip( false, dev );
+end
+
+function actionSetValue( dev, val )
+    D("actionSetValue(%1,%2)", dev, val)
+    val = tonumber(val)
+    if val ~= nil then
+        luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", val, dev )
+        luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", val, dev )
+    end
 end
 
 function actionResetBattery( dev )
@@ -202,12 +228,11 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "Continuity", 1, dev )
         luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
+        luup.variable_set( MYSID, "ExtraVariables", 2, dev )
         
         luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", dev )
         luup.variable_set( SECURITYSID, "Armed", 0, dev )
         luup.variable_set( SECURITYSID, "Tripped", 0, dev )
-        luup.variable_set( SECURITYSID, "ArmedTripped", 0, dev )
-        luup.variable_set( SECURITYSID, "LastTrip", os.time(), dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", "", dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", "", dev )
@@ -215,6 +240,9 @@ local function plugin_runOnce(dev)
 
         luup.variable_set( "urn:micasaverde-com:serviceId:HaDevice1", "ModeSetting", "1:;2:;3:;4:", dev )
         
+        luup.attr_set( "category_num", 4, dev )
+        luup.attr_set( "subcategory_num", "", dev )
+
         luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
         return -- this branch must return
     end
@@ -232,8 +260,20 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "Continuity", 1, dev )
         luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
-        luup.variable_set( SECURITYSID, "LastTrip", 0, dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
+    end
+    if rev < 010101 then
+        D("runOnce() updating config for rev 010101")
+        luup.variable_set( MYSID, "Alias", "", dev )
+    end
+    if rev < 010200 then
+        D("runOnce() updating config for rev 010200")
+        luup.attr_set( "category_num", 4, dev )
+        luup.attr_set( "subcategory_num", "", dev )
+    end
+    if rev < 010201 then
+        D("runOnce() updating config for rev 010201")
+        luup.variable_set( MYSID, "ExtraVariables", "", dev )
     end
 
     -- No matter what happens above, if our versions don't match, force that here/now.
@@ -313,6 +353,17 @@ function plugin_tick( targ )
     luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", sprec, pdev )
+    
+    local s = split( luup.variable_get( MYSID, "ExtraVariables", pdev ) or "" )
+    for _,v in pairs( s ) do
+        if v ~= "" then
+            local svc = split( v, "/" )
+            if #svc == 1 then
+                table.insert( svc, 1, MYSID )
+            end
+            luup.variable_set( svc[1], svc[2], sprec, pdev )
+        end
+    end
     
     --[[ For binary sensor, consider the duty cycle against time (func value is irrelevant).
          Handling the trip state is made a little more complex by AutoUntrip. When AutoUntrip
@@ -482,4 +533,112 @@ end
 
 function plugin_getVersion()
     return _PLUGIN_VERSION, _PLUGIN_NAME, _CONFIGVERSION
+end
+
+local function getDevice( dev, pdev, v )
+    if v == nil then v = luup.devices[dev] end
+    local json = require("json")
+    if json == nil then json = require("dkjson") end
+    local devinfo = { 
+          devNum=dev
+        , ['type']=v.device_type
+        , description=v.description or ""
+        , room=v.room_num or 0
+        , udn=v.udn or ""
+        , id=v.id
+        , ['device_json'] = luup.attr_get( "device_json", dev )
+        , ['impl_file'] = luup.attr_get( "impl_file", dev )
+        , ['device_file'] = luup.attr_get( "device_file", dev )
+        , manufacturer = luup.attr_get( "manufacturer", dev ) or ""
+        , model = luup.attr_get( "model", dev ) or ""
+    }
+    local rc,t,httpStatus,uri
+    if isOpenLuup then
+        uri = "http://localhost:3480/data_request?id=status&DeviceNum=" .. dev .. "&output_format=json"
+    else
+        uri = "http://localhost/port_3480/data_request?id=status&DeviceNum=" .. dev .. "&output_format=json"
+    end
+    rc,t,httpStatus = luup.inet.wget(uri, 15)
+    if httpStatus ~= 200 or rc ~= 0 then 
+        devinfo['_comment'] = string.format( 'State info could not be retrieved, rc=%s, http=%s', tostring(rc), tostring(httpStatus) )
+        return devinfo
+    end
+    local d = json.decode(t)
+    local key = "Device_Num_" .. dev
+    if d ~= nil and d[key] ~= nil and d[key].states ~= nil then d = d[key].states else d = nil end
+    devinfo.states = d or {}
+    return devinfo
+end
+
+function requestHandler( lul_request, lul_parameters, lul_outputformat )
+    D("request(%1,%2,%3) luup.device=%4", lul_request, lul_parameters, lul_outputformat, luup.device)
+    local action = lul_parameters['action'] or lul_parameters['command'] or ""
+    local deviceNum = tonumber( lul_parameters['device'], 10 ) or luup.device
+    if action == "debug" then
+        local err,msg,job,args = luup.call_action( MYSID, "SetDebug", { debug=1 }, deviceNum )
+        return string.format("Device #%s result: %s, %s, %s, %s", tostring(deviceNum), tostring(err), tostring(msg), tostring(job), dump(args)), "text/plain"
+    end
+
+    if action == "status" then
+        local json = require("json")
+        if json == nil then json = require("dkjson") end
+        local st = {
+            name=_PLUGIN_NAME,
+            version=_PLUGIN_VERSION,
+            configversion=_CONFIGVERSION,
+            author="Patrick H. Rigney (rigpapa)",
+            url=_PLUGIN_URL,
+            ['type']=MYTYPE,
+            responder=luup.device,
+            timestamp=os.time(),
+            system = {
+                version=luup.version,
+                isOpenLuup=isOpenLuup,
+                isALTUI=isALTUI,
+                units=luup.attr_get( "TemperatureFormat", 0 ),
+            },            
+            devices={}
+        }
+        for k,v in pairs( luup.devices ) do
+            if v.device_type == MYTYPE then
+                local devinfo = getDevice( k, luup.device, v ) or {}
+                table.insert( st.devices, devinfo )
+            end
+        end
+        return json.encode( st ), "application/json"
+    elseif string.find("trip reset arm disarm setvalue", action) then
+        local alias = lul_parameters['alias'] or ""
+        local parm = {}
+        local devAction
+        local sid = MYSID
+        if action == "trip" then
+            devAction = "Trip"
+        elseif action == "arm" then
+            devAction = "SetArmed"
+            parm.newArmedValue = 1
+            sid = SECURITYSID
+        elseif action == "disarm" then
+            devAction = "SetArmed"
+            parm.newArmedValue = 0
+            sid = SECURITYSID
+        elseif action == "setvalue" then
+            devAction = "SetValue"
+            parm.newValue = lul_parameters['value']
+        else
+            devAction = "Reset"
+        end
+        local nDev = 0
+        for k,v in pairs( luup.devices ) do
+            if v.device_type == MYTYPE then
+                local da = luup.variable_get(MYSID, "Alias", k) or ""
+                if da ~= "" and ( alias == "*" or alias == da ) then
+                    luup.call_action( sid, devAction, parm, k)
+                    nDev = nDev + 1
+                end
+            end
+        end
+        return string.format("Done with %q for %d devices matching alias %q", action, nDev, alias), "text/plain"
+    else
+        return string.format("Action %q not implemented", action), "text/plain"
+    end
 end
