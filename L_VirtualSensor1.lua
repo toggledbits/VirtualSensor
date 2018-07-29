@@ -7,10 +7,11 @@
 
 module("L_VirtualSensor1", package.seeall)
 
+local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
 local _PLUGIN_VERSION = "1.3develop"
 local _PLUGIN_URL = "http://www.toggledbits.com/sitesensor"
-local _CONFIGVERSION = 010200
+local _CONFIGVERSION = 010201
 
 local debugMode = false
 
@@ -115,6 +116,16 @@ local function constrain( n, nMin, nMax )
     return n
 end
 
+-- Split string to array of strip on separator
+local function split( str, sep )
+    if sep == nil then sep = "," end
+    local arr = {}
+    if #str == 0 then return arr, 0 end
+    local rest = string.gsub( str or "", "([^" .. sep .. "]*)" .. sep, function( m ) table.insert( arr, m ) return "" end )
+    table.insert( arr, rest )
+    return arr, #arr
+end
+
 -- Lua has no ternary op, so fake one
 local function iif( b, t, f )
     if b then return t end
@@ -217,12 +228,11 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "Continuity", 1, dev )
         luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
+        luup.variable_set( MYSID, "ExtraVariables", 2, dev )
         
         luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", dev )
         luup.variable_set( SECURITYSID, "Armed", 0, dev )
         luup.variable_set( SECURITYSID, "Tripped", 0, dev )
-        luup.variable_set( SECURITYSID, "ArmedTripped", 0, dev )
-        luup.variable_set( SECURITYSID, "LastTrip", os.time(), dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", "", dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", "", dev )
@@ -250,7 +260,6 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "Continuity", 1, dev )
         luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
-        luup.variable_set( SECURITYSID, "LastTrip", 0, dev )
         luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
     end
     if rev < 010101 then
@@ -261,6 +270,10 @@ local function plugin_runOnce(dev)
         D("runOnce() updating config for rev 010200")
         luup.attr_set( "category_num", 4, dev )
         luup.attr_set( "subcategory_num", "", dev )
+    end
+    if rev < 010201 then
+        D("runOnce() updating config for rev 010201")
+        luup.variable_set( MYSID, "ExtraVariables", "", dev )
     end
 
     -- No matter what happens above, if our versions don't match, force that here/now.
@@ -340,6 +353,17 @@ function plugin_tick( targ )
     luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", sprec, pdev )
+    
+    local s = split( luup.variable_get( MYSID, "ExtraVariables", pdev ) or "" )
+    for _,v in pairs( s ) do
+        if v ~= "" then
+            local svc = split( v, "/" )
+            if #svc == 1 then
+                table.insert( svc, 1, MYSID )
+            end
+            luup.variable_set( svc[1], svc[2], sprec, pdev )
+        end
+    end
     
     --[[ For binary sensor, consider the duty cycle against time (func value is irrelevant).
          Handling the trip state is made a little more complex by AutoUntrip. When AutoUntrip
