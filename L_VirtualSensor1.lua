@@ -493,7 +493,7 @@ function plugin_init(dev)
 
     -- Check for ALTUI and OpenLuup. ??? need quicker, cleaner check
     for k,v in pairs(luup.devices) do
-        if v.device_type == "urn:schemas-upnp-org:device:altui:1" then
+        if v.device_type == "urn:schemas-upnp-org:device:altui:1" and v.device_num_parent == 0 then
             local rc,rs,jj,ra
             D("plugin_init() detected ALTUI at %1", k)
             isALTUI = true
