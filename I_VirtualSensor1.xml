@@ -21,6 +21,13 @@
     <actionList>
         <action>
             <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+            <name>AddChild</name>
+            <job>
+                return VirtualSensor.actionAddChild( lul_device, lul_settings.NewChildDeviceType )
+            </job>
+        </action>
+        <action>
+            <serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
             <name>GetInterval</name>
             <run>
                 return -- what we do here doesn't matter, luup uses the relatedStateVariable directly

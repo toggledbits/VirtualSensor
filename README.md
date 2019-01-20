@@ -1,26 +1,25 @@
 # VirtualSensor #
 VirtualSensor is a plugin for Vera home automation controllers that generates
 data and events for testing other plugins, scenes, scripts and program logic.
+It also creates standalone sensors of the available types (temperature, humidity,
+light, generic, and security) and can set the sensor value to that of any variable
+on any other device (and keep it up-to-date).
 
-## Why? ##
+## Virtual Sensors ##
 
-I have written and maintain several plugins for Vera controllers. Many of them use sensor
-input for various purposes, and sometimes testing with live data is too slow and tedious.
-So I cobbled together a plugin that can act as any kind of sensor native to Vera: temperature,
-motion/door (aka security), humidity, light, and generic (it does them all at once).
+Virtual Sensor's control panel allows you to create any number of virtual sensors,
+which can then be configured to clone their values from another device. This is
+handy to use in conjunction with other plugins that more store information in 
+a variable, but not create a child device for that variable to use as a trigger
+in scenes, Reactor, etc.
 
-VirtualSensor can also operate entirely in "manual" mode, meaning that the trip/reset state
-of its SecuritySensor1 service can be managed exclusively through the UI or scene/Lua/PLEG
-actions. It can also be managed by external web requests to the Vera, so an outside service
-could set the tripped/reset state of the device based on conditions entirely unknown to Vera.
-For example, BlueIris is popular NVR software for managing and recording IP security cameras,
-and it offers excellent motion detection, sound triggers, etc. Simple configuration within
-BlueIris would allow to set and reset the tripped state of a VirtualSensor, allowing it
-to operate as a motion sensor controlled by BlueIris reaction to what it sees in a camera.
+Source data for each virtual sensor created is set on the "Virtual Sensors" tab
+of the Virtual Sensor device.
 
-VirtualSensor runs on Vera UI7, ALTUI, and openLuup.
+## Simulator ##
 
-## Operation ##
+The Simulator function of Virtual Sensor generates values using a sinusoidal formula,
+the parameters of which you can control.
 
 In *disabled* state, VirtualSensor is static and will change only when acted
 upon by the UI buttons, scenes, Lua, PLEG, API requests, etc.
