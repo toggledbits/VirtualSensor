@@ -1,4 +1,13 @@
 //# sourceURL=J_VirtualSensor1_UI7.js
+/**
+ * J_VirtualSensor1_UI7.js
+ * Configuration interface for ReactorSensor
+ *
+ * Copyright 2017,2018,2019 Patrick H. Rigney, All Rights Reserved.
+ * This file is part of Reactor. For license information, see LICENSE at https://github.com/toggledbits/Reactor
+ */
+/* globals api,jQuery,Utils */
+
 var VirtualSensor = (function(api) {
 
     // unique identifier for this plugin...
@@ -7,7 +16,7 @@ var VirtualSensor = (function(api) {
     var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 
     var myModule = {};
-    
+
     function updateMessage( dev ) {
         var amplitude = parseFloat( jQuery( "input#amplitude" ).val() );
         var midline = parseFloat( jQuery( "input#midline" ).val() );
@@ -15,7 +24,7 @@ var VirtualSensor = (function(api) {
         var period = parseInt( jQuery( "input#period" ).val() );
         var duty = parseFloat( jQuery( "input#duty" ).val() );
         var autountrip = api.getDeviceState( dev, "urn:micasaverde-com:serviceId:SecuritySensor1", "AutoUntrip" ) || 0;
-        
+
         var msg;
         var el = jQuery("div#message");
         if ( isNaN( amplitude ) ) {
@@ -36,8 +45,8 @@ var VirtualSensor = (function(api) {
         } else {
             el.removeClass("tb-red");
             var q = 3.14159265 / 2.0;
-            msg = "With these settings, the minimum value is " + ( Math.sin( q * 3 ) * amplitude + midline )
-            + " and the maximum is " + ( Math.sin( q ) * amplitude + midline ) + ".";
+            msg = "With these settings, the minimum value is " + ( Math.sin( q * 3 ) * amplitude + midline ) +
+                " and the maximum is " + ( Math.sin( q ) * amplitude + midline ) + ".";
             /* Duty cycle. May be overridden by AutoUntrip. */
             var t = Math.round( period * duty / 100.0 );
             if ( autountrip > 0 && autountrip < t ) {
@@ -52,7 +61,7 @@ var VirtualSensor = (function(api) {
         el.text(msg);
         jQuery("span#intervalreq").text( isNaN(period) ? "5" : Math.min( 5, Math.max( 1, Math.floor( period / 40 ) ) ) );
     }
-    
+
     function onBeforeCpanelClose(args) {
         // console.log('handler for before cpanel close');
     }
@@ -66,7 +75,7 @@ var VirtualSensor = (function(api) {
             initPlugin();
 
             var myDevice = api.getCpanelDeviceId();
-            
+
             var html = "";
 
             html += "<style>";
@@ -100,7 +109,7 @@ var VirtualSensor = (function(api) {
             html += "<h2>Midline</h2><label for=\"midline\">Enter the midline value:</label><br/>";
             html += "<input type=\"text\" size=\"8\" class=\"numfield\" id=\"midline\" />";
             html += "</div>";
-            
+
             html += '</div><div class="row">';
 
             // Duty Cycle
@@ -132,13 +141,13 @@ var VirtualSensor = (function(api) {
             /* html += "<div class=\"clearfix\"></div>"; */
 
             html += '<div class="tb-large" id="message">&nbsp;</div>';
-            
+
             html += '<div class="tb-medium">';
             html += 'To create a range of 0 to 100% (humidity, for example), set midline=50, amplitude=50.';
             html += ' For a temperature range of 65&deg;F to 85&deg;F, set midline=75, amplitude=10.';
             html += ' Note that due to the resolution of the timer, the full range of values may not be seen, including the mathematical min/max.';
             html += '</div>';
-            
+
 			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.toggledbits.com/donate" target="_blank">a small donation</a>. I am grateful for any support you choose to give!</p>';
 
             // Push generated HTML to page
@@ -167,7 +176,7 @@ var VirtualSensor = (function(api) {
                 }
                 updateMessage( myDevice );
             });
-            
+
             s = parseFloat(api.getDeviceState(myDevice, serviceId, "Amplitude"));
             if (isNaN(s))
                 s = "1.0";
@@ -178,7 +187,7 @@ var VirtualSensor = (function(api) {
                 }
                 updateMessage( myDevice );
             });
-            
+
             s = parseFloat(api.getDeviceState(myDevice, serviceId, "Midline"));
             if (isNaN(s))
                 s = "0.0";
@@ -206,10 +215,9 @@ var VirtualSensor = (function(api) {
                 // If the currently selected option isn't on the list, add it, so we don't lose it.
                 var el = jQuery('select#prec option[value="' + s + '"]');
                 if ( el.length == 0 ) {
-                    jQuery('select#prec').append($('<option>', { value: s }).text(s + ' digits (custom)').prop('selected', true));
-                } else {
-                    el.prop('selected', true);
+                    jQuery('select#prec').append( jQuery( '<option>/' ).val( s ).text(s + ' digits (custom)') );
                 }
+                el.val( s );
             }
             jQuery("select#prec").change( function( obj ) {
                 var newVal = jQuery(this).val();
@@ -217,8 +225,8 @@ var VirtualSensor = (function(api) {
                 updateMessage( myDevice );
             });
 
-            
-            
+
+
             updateMessage( myDevice );
         }
         catch (e)
@@ -226,14 +234,210 @@ var VirtualSensor = (function(api) {
             Utils.logError('Error in VirtualSensor.configurePlugin(): ' + e);
         }
     }
-    
-    function stub() { }
-    
+
+    /**
+     * Make a service/variable menu of all state defined for the device. Be
+     * brief, using only the variable name in the menu, unless that name is
+     * used by multiple services, in which case the last component of the
+     * serviceId is added parenthetically to draw the distinction.
+     */
+    function makeVariableMenu( device, key ) {
+        var el = jQuery('<select class="varmenu form-control form-control-sm"></select>');
+        var myid = api.getCpanelDeviceId();
+        var devobj = api.getDeviceObject( device );
+        if ( devobj ) {
+            var mm = {}, ms = [];
+            for ( var k=0; k<( devobj.states || []).length; ++k ) {
+                var st = devobj.states[k];
+                if ( undefined === st.variable || undefined === st.service ) continue;
+                /* For self-reference, only allow variables created from configured expressions */
+                if ( device == myid && st.service != "urn:toggledbits-com:serviceId:ReactorValues" ) continue;
+                var vnm = st.variable.toLowerCase();
+                if ( undefined === mm[vnm] ) {
+                    /* Just use variable name as menu text, unless multiple with same name (collision) */
+                    mm[vnm] = ms.length;
+                    ms.push( { text: st.variable, service: st.service,
+                        variable: st.variable } );
+                } else {
+                    /* Collision. Modify existing element to include service name. */
+                    var n = mm[vnm];
+                    ms[n].text = ms[n].variable + ' (' + ms[n].service.replace(/^([^:]+:)+/, "") + ')';
+                    /* Append new entry (text includes service name) */
+                    ms.push( { text: st.variable + ' (' +
+                        st.service.replace(/^([^:]+:)+/, "") + ')',
+                        service: st.service,
+                        variable: st.variable
+                    } );
+                }
+            }
+            var r = ms.sort( function( a, b ) {
+                /* ??? <=> */
+                if ( a.text.toLowerCase() === b.text.toLowerCase() ) return 0;
+                return a.text.toLowerCase() < b.text.toLowerCase() ? -1 : 1;
+            });
+            r.forEach( function( sv ) {
+                el.append( '<option value="' + sv.service + '/' + sv.variable + '">' + sv.text + '</option>' );
+            });
+            if ( 0 === r.length ) {
+                el.append( '<option value="" disabled>(no eligible variables)</option>' );
+            }
+        }
+
+        if ( ( key || "" ) !== "" ) {
+            var opt = jQuery( 'option[value="' + key + '"]', el );
+            if ( opt.length === 0 ) {
+                el.append( jQuery('<option/>').val( key ).text( key + "???" ).prop( 'selected', true ) );
+            } else {
+                el.val( key );
+            }
+        }
+        return el;
+    }
+
+    function handleVariableChange( ev ) {
+        var el = jQuery( ev.currentTarget );
+        var row = el.closest( 'div.row' );
+        var vsdevice = parseInt( row.attr( 'id' ) );
+        var device = parseInt( jQuery( 'select.devicemenu', row ).val() );
+        var vs = el.val();
+        var variable = vs.replace( /^[^\/]+\//, "" );
+        var service = vs.replace( /\/.*$/, "" );
+        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceDevice", isNaN( device ) ? "" : device,
+        {
+            'onSuccess' : function() {
+            },
+            'onFailure' : function() {
+                alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
+            }
+        });
+        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceServiceId", service || "",
+        {
+            'onSuccess' : function() {
+            },
+            'onFailure' : function() {
+                alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
+            }
+        });
+        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceVariable", variable || "",
+        {
+            'onSuccess' : function() {
+            },
+            'onFailure' : function() {
+                alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
+            }
+        });
+        jQuery( 'div#vs-content div#notice' ).text( "After making changes, you need to Reload Luup to make them take effect." );
+    }
+
+    function handleDeviceChange( ev ) {
+        var el = jQuery( ev.currentTarget );
+        var row = el.closest( 'div.row' );
+        var device = parseInt( el.val() );
+        var vm = jQuery( 'select.varmenu', row );
+        vm.empty();
+        if ( ! isNaN(device) ) {
+            var m = makeVariableMenu( device );
+            jQuery( 'select.varmenu', row ).append( m.children() );
+        }
+        handleVariableChange( vm );
+    }
+
+    function handleReloadClick( ev ) {
+        api.performActionOnDevice( 0, "urn:micasaverde-com:serviceId:HomeAutomationGateway1", "Reload", {
+            actionArguments: {},
+            onSuccess: function() {
+                jQuery( 'div#vs-content div#notice' ).text( "" );
+            },
+            onFailure: function() {
+                jQuery( 'div#vs-content div#notice' ).text( "Reload request failed. Please try again in 15 seconds or so." );
+            }
+        });
+    }
+
+    function doVirtualSensors() {
+        try {
+            var ix;
+
+            initPlugin();
+
+            var myDevice = api.getCpanelDeviceId();
+
+            var html = '<div id="vs-content" />';
+            api.setCpanelContent(html);
+
+            var devices = api.cloneObject( api.getListOfDevices() );
+            var mm = jQuery( '<select class="devicemenu form-control form-control-sm" />' );
+            mm.append( '<option value="">--choose device--</option>' );
+            devices.sort( function( a, b ) {
+                if ( (a.name || "").toLowerCase() == (b.name || "").toLowerCase() ) {
+                    return 0;
+                }
+                return (a.name || "").toLowerCase() < (b.name || "").toLowerCase() ? -1 : 1;
+            });
+            for ( ix=0; ix<(devices || []).length; ix++ ) {
+                var opt = jQuery( '<option/>');
+                opt.val( devices[ix].id );
+                opt.text( devices[ix].name + " (#" + devices[ix].id + ")" );
+                mm.append( opt );
+            }
+
+            var container = jQuery( 'div#vs-content' );
+            var count = 0;
+            for ( ix=0; ix<(devices || []).length; ix++ ) {
+                var v = devices[ix];
+                if ( v.id_parent == myDevice ) {
+                    var row = jQuery( '<div class="row" />' );
+                    row.attr( 'id', v.id );
+
+                    var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3" />' );
+                    row.append( col.text( v.name ) );
+
+                    /* Device menu for row */
+                    col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-9 form-inline" />' );
+                    var sourcedevice = parseInt( api.getDeviceStateVariable( v.id, serviceId, "SourceDevice" ) || "-1" );
+                    var dm = mm.clone();
+                    if ( jQuery( 'option [value="' + sourcedevice + '"]' ).length == 0 ) {
+                        dm.append( jQuery( '<option/>' ).val( sourcedevice ).text( "Missing device " + sourcedevice ) );
+                    }
+                    dm.val( sourcedevice );
+                    col.append( dm );
+                    dm.on( 'change.vsensor', handleDeviceChange );
+
+                    /* Variable menu for row */
+                    var service = api.getDeviceStateVariable( v.id, serviceId, "SourceServiceId" ) || "";
+                    var variable = api.getDeviceStateVariable( v.id, serviceId, "SourceVariable" ) || "";
+                    var key = service + "/" + variable;
+                    dm = makeVariableMenu( sourcedevice, key );
+                    col.append( dm );
+                    dm.on( 'change.vsensor', handleVariableChange );
+
+                    row.append( col );
+
+                    container.append( row );
+                    ++count;
+                }
+            }
+
+            if ( count == 0 ) {
+                container.empty().text( 'There are no virtual sensor devices. Go back to the "Control" tab and create one!' );
+            } else {
+                container.append( '<div class="row"><div class="col-xs-12"><button id="reload" class="btn btn-primary">Reload Luup</button><div id="notice"/></div></div>' );
+                jQuery( 'button#reload', container ).on( 'click.vsensor', handleReloadClick );
+            }
+        }
+        catch (e)
+        {
+            alert(String(e));
+            Utils.logError('Error in VirtualSensor.configurePlugin(): ' + e);
+        }
+    }
+
     myModule = {
         uuid: uuid,
         initPlugin: initPlugin,
         onBeforeCpanelClose: onBeforeCpanelClose,
-        configurePlugin: configurePlugin
+        configurePlugin: configurePlugin,
+        doVirtualSensors: doVirtualSensors
     };
     return myModule;
 })(api);

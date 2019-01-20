@@ -9,9 +9,9 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.4develop"
-local _PLUGIN_URL = "http://www.toggledbits.com/sitesensor"
-local _CONFIGVERSION = 010201
+local _PLUGIN_VERSION = "1.4"
+local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
+local _CONFIGVERSION = 010202
 
 local debugMode = false
 
@@ -24,6 +24,21 @@ local HADEVICESID = "urn:micasaverde-com:serviceId:HaDevice1"
 local runStamp = 0
 local isALTUI = false
 local isOpenLuup = false
+
+local watchMap = {}
+
+local dfMap = {
+      ["urn:schemas-micasaverde-com:device:SecuritySensor:1"] =
+            { device_file="D_SecuritySensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped" }
+    , ["urn:schemas-micasaverde-com:device:TemperatureSensor:1"] =
+            { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature" }
+    , ["urn:schemas-micasaverde-com:device:HumiditySensor:1"] =
+            { device_file="D_HumiditySensor1.xml", category=16, service="urn:micasaverde-com:serviceId:HumiditySensor1", variable="CurrentLevel" }
+    , ["urn:schemas-micasaverde-com:device:LightSensor:1"] =
+            { device_file="D_LightSensor1.xml", category=18, service="rn:micasaverde-com:serviceId:LightSensor1", variable="CurrentLevel" }
+    , ["urn:schemas-micasaverde-com:device:GenericSensor:1"] =
+            { device_file="D_GenericSensor1.xml", category=12, service="urn:micasaverde-com:serviceId:GenericSensor1", variable="CurrentLevel" }
+}
 
 --[[ const ]] local tau = 6.28318531 -- tau > pi
 
@@ -153,7 +168,77 @@ local function trip( flag, pdev )
     luup.variable_set( MYSID, "TripInhibit", val, pdev )
 end
 
+local function getChildDevices( typ, parent, filter )
+    assert(parent ~= nil)
+    local res = {}
+    for k,v in pairs(luup.devices) do
+        if v.device_num_parent == parent and ( typ == nil or v.device_type == typ ) and ( filter==nil or filter(k, v) ) then
+            table.insert( res, k )
+        end
+    end
+    return res
+end
+
+local function findChildById( childId, parent )
+    assert(parent ~= nil)
+    for k,v in pairs(luup.devices) do
+        if v.device_num_parent == parent and v.id == childId then return k,v end
+    end
+    return false
+end
+
+local function prepForNewChildren( existingChildren, dev )
+    D("prepForNewChildren(%1)", existingChildren)
+    if existingChildren == nil then
+        existingChildren = {}
+        for k,v in pairs( luup.devices ) do
+            if v.device_num_parent == dev then
+                if dfMap[v.device_type] ~= nil then
+                    table.insert( existingChildren, k )
+                else
+                    L({level=2,msg="Skipping child id %1 dev %2 (%3), type %4 not supported"},
+                        v.id, k, v.description, v.device_type)
+                end
+            end
+        end
+    end
+    local ptr = luup.chdev.start( dev )
+    for _,k in ipairs( existingChildren ) do
+        local v = luup.devices[k]
+        assert(v)
+        assert(v.device_num_parent == dev)
+        D("prepForNewChildren() appending existing child %1 (%2/%3)", v.description, k, v.id)
+        luup.chdev.append( dev, ptr, v.id, v.description, "",
+            dfMap[v.device_type].device_file,
+            "", "", false )
+    end
+    return ptr, existingChildren
+end
+
 --[[   A C T I O N   H A N D L E R S   ]]
+
+function actionAddChild( dev, childType )
+    local df = dfMap[ childType ]
+    assert( df )
+
+    -- Find max ID in use.
+    local mx = 0
+    local c = getChildDevices( nil, dev )
+    for _,d in ipairs( c or {} ) do
+        local v = tonumber(luup.devices[d].id)
+        if v and v > mx then mx = v end
+    end
+
+    -- Generate default description
+    local desc = "Virtual " .. df.service:gsub( "[^:]+:", "" ):gsub( "%d+$", "" )
+
+    L("Add new child type %1 id %2 desc %3", childType, mx+1, desc)
+
+    local ptr = prepForNewChildren( nil, dev )
+    luup.chdev.append( dev, ptr, tostring(mx+1), desc, "", dfMap[childType].device_file, "", "", false )
+    luup.chdev.sync( dev, ptr )
+    return 4,0
+end
 
 function actionSetArmed( dev, newArmed )
     D("actionSetArmed(%1,%2)", dev, newArmed)
@@ -192,6 +277,91 @@ function actionResetBattery( dev )
     end
 end
 
+--[[   C H I L D   C O P Y   I M P L E M E N T A T I O N --]]
+
+local function initChild( dev )
+    local s = getVarNumeric( "Version", 0, dev, MYSID )
+    if s == 0 then
+        luup.variable_set( MYSID, "SourceDevice", "", dev )
+        luup.variable_set( MYSID, "SourceServiceId", "", dev )
+        luup.variable_set( MYSID, "SourceVariable", "", dev )
+
+        local df = dfMap[ luup.devices[dev].device_type ]
+        if df then
+            if df.category ~= nil then
+                luup.attr_set( "category_num", df.category, dev )
+                if df.subcategory ~= nil then
+                    luup.attr_set( "subcategory_num", df.subcategory, dev )
+                end
+            end
+        end
+
+        luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
+        return
+    end
+
+    if s < _CONFIGVERSION then
+        luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
+    end
+end
+
+local function startChild( dev )
+    D("startChild(%1)", dev)
+    local df = dfMap[ luup.devices[dev].device_type ]
+    assert( df ~= nil, "Unsupported device type for child" )
+
+    initChild( dev )
+
+    local device = luup.variable_get( MYSID, "SourceDevice", dev ) or ""
+    local dn = tonumber(device)
+    if dn == nil then
+        device = device:lower()
+        for k,d in pairs( luup.devices ) do
+            if d.description:lower() == device then
+                dn = k
+                break
+            end
+        end
+        if dn == nil then
+            L({level=1,msg="%1 (%2) can't find your configured source device %3"},
+                luup.devices[dev].description, dev, device)
+            luup.set_failure( 1, dev )
+        end
+    end
+
+    local service = luup.variable_get( MYSID, "SourceServiceId", dev ) or ""
+    local variable = luup.variable_get( MYSID, "SourceVariable", dev ) or ""
+    if service == "" or variable == "" then
+        luup.set_failure( 1, dev )
+        return
+    end
+
+    local key = (dn .. "/" .. service .. "/" .. variable):lower()
+    if watchMap[key] then
+        table.insert( watchMap[key], dev )
+    else
+        watchMap[key] = { dev }
+    end
+    luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
+
+    local s = luup.variable_get( service, variable, dn ) or ""
+    local t = luup.variable_get( df.service, df.variable, dev ) or ""
+    if s ~= t then
+        luup.variable_set( df.service, df.variable, s, dev )
+    end
+
+    luup.set_failure( 0, dev )
+end
+
+-- Watched variable for child has changed. Set new value on child.
+local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
+    D("childWatchCallback(%1,%2,%3,%4,%5,%6)", dev, svc, var, oldVal, newVal, child)
+    assert( luup.devices[child] )
+    local df = dfMap[ luup.devices[child].device_type ]
+    assert(df, "Device map entry not found for "..tostring(luup.devices[child].device_type))
+    luup.variable_set( df.service, df.variable, newVal, child )
+end
+
 --[[   P L U G I N   C O R E   F U N C T I O N S   ]]
 
 -- Check current firmware for compatibility (called at startup by plugin_init)
@@ -217,8 +387,10 @@ local function plugin_runOnce(dev)
     if (rev == 0) then
         -- Initialize for entirely new instance
         D("runOnce() Performing first-time initialization!")
-        luup.variable_set( MYSID, "Interval", 5, dev )
-        luup.variable_set( MYSID, "Period", 120, dev )
+        luup.variable_set( MYSID, "Enabled", 0, dev )
+        luup.variable_set( MYSID, "DebugMode", 0, dev )
+        luup.variable_set( MYSID, "Interval", 60, dev )
+        luup.variable_set( MYSID, "Period", 1800, dev )
         luup.variable_set( MYSID, "Amplitude", 1, dev )
         luup.variable_set( MYSID, "Midline", 0, dev )
         luup.variable_set( MYSID, "DutyCycle", 50, dev )
@@ -229,7 +401,7 @@ local function plugin_runOnce(dev)
         luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
         luup.variable_set( MYSID, "BatteryReset", 0, dev )
         luup.variable_set( MYSID, "ExtraVariables", 2, dev )
-        
+
         luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", dev )
         luup.variable_set( SECURITYSID, "Armed", 0, dev )
         luup.variable_set( SECURITYSID, "Tripped", 0, dev )
@@ -239,7 +411,7 @@ local function plugin_runOnce(dev)
         luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", "", dev )
 
         luup.variable_set( "urn:micasaverde-com:serviceId:HaDevice1", "ModeSetting", "1:;2:;3:;4:", dev )
-        
+
         luup.attr_set( "category_num", 4, dev )
         luup.attr_set( "subcategory_num", "", dev )
 
@@ -274,6 +446,9 @@ local function plugin_runOnce(dev)
     if rev < 010201 then
         D("runOnce() updating config for rev 010201")
         luup.variable_set( MYSID, "ExtraVariables", "", dev )
+    end
+    if rev < 010202 then
+        luup.variable_set( MYSID, "DebugMode", 0, dev )
     end
 
     -- No matter what happens above, if our versions don't match, force that here/now.
@@ -319,7 +494,7 @@ function plugin_tick( targ )
         D("plugin_tick() disabled, stopping")
         return
     end
-    
+
     local now = os.time()
     local baseX = getVarNumeric( "BaseTime", 0, pdev, MYSID )
     if baseX == 0 then
@@ -330,15 +505,15 @@ function plugin_tick( targ )
     local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
     local nextDelay = freq -- a reasonable default that we may shorten
 
-    -- Make sure X is in range (can be out if period changes in settings), and 
+    -- Make sure X is in range (can be out if period changes in settings), and
     -- compute new sensor value.
     local nextX = ( now - baseX ) % per
     luup.variable_set( MYSID, "NextX", nextX, pdev )
 
     local mid = getVarNumeric( "Midline", 0, pdev, MYSID )
     local amp = getVarNumeric( "Amplitude", 1, pdev, MYSID )
-    local currVal = math.sin( nextX / per * tau ) * amp + mid    
-    
+    local currVal = math.sin( nextX / per * tau ) * amp + mid
+
     -- Now that we have our value, format it to requested precision
     local prec = getVarNumeric( "Precision", 2, pdev, MYSID )
     local sprec
@@ -347,13 +522,13 @@ function plugin_tick( targ )
     else
         sprec = string.format("%." .. prec .. "f", currVal)
     end
-    
+
     -- Set this in a variety of ways
     luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", sprec, pdev )
     luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", sprec, pdev )
-    
+
     local s = split( luup.variable_get( MYSID, "ExtraVariables", pdev ) or "" )
     for _,v in pairs( s ) do
         if v ~= "" then
@@ -364,11 +539,11 @@ function plugin_tick( targ )
             luup.variable_set( svc[1], svc[2], sprec, pdev )
         end
     end
-    
+
     --[[ For binary sensor, consider the duty cycle against time (func value is irrelevant).
          Handling the trip state is made a little more complex by AutoUntrip. When AutoUntrip
          is non-zero, the sensor untrips after that many seconds, even if the base condition
-         indicates continued trip. We use TripInhibit when AutoUntrip resets the tripped state, 
+         indicates continued trip. We use TripInhibit when AutoUntrip resets the tripped state,
          to prevent re-tripping until the base condition goes back to false/untripped.
     --]]
     local duty = getVarNumeric( "DutyCycle", 50, pdev, MYSID )
@@ -401,7 +576,7 @@ function plugin_tick( targ )
     if nextX < dutyTime then
         nextDelay = math.min( dutyTime - nextX, nextDelay )
     end
-    
+
     -- If we're approaching the max or min, come as close as we can.
     local nn = math.ceil( ( per / 4 ) - nextX )
     -- D("time to max is %1", nn)
@@ -412,7 +587,7 @@ function plugin_tick( targ )
     if nn > 0 then
         nextDelay = math.min( nn, nextDelay )
     end
-    
+
     -- Battery emulation?
     local batteryTime = getVarNumeric( "BatteryEmulation", 0, pdev, MYSID )
     if batteryTime > 0 then
@@ -445,19 +620,26 @@ function plugin_tick( targ )
             end
         end
     end
-    
-    -- Schedule our next tick. Notice we pass through what we got.    
+
+    -- Schedule our next tick. Notice we pass through what we got.
     plugin_scheduleTick( nextDelay, stepStamp, pdev, passthru )
 end
 
 -- Watch callback
 function plugin_watchCallback( dev, service, variable, oldValue, newValue )
     D("plugin_watchCallback(%1,%2,%3,%4,%5)", dev, service, variable, oldValue, newValue)
-    -- assert(luup.device ~= nil) -- fails on openLuup, but only ~= dev when child dev w/handleChildren parent
+    local key = (dev .. "/" .. service .. "/" .. variable):lower()
+    if watchMap[key] then
+        for _,d in ipairs( watchMap[key] ) do
+            local success = pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
+        end
+    end
+    -- Also check and do these, in case someone makes a child that looks at us.
+    -- We still have work to do, you know.
     if service == MYSID then
         if variable == "Period" then
             D("plugin_watchCallback() Period changed, resetting BaseTime")
-            luup.variable_set( MYSID, "BaseTime", os.time(), dev )  
+            luup.variable_set( MYSID, "BaseTime", os.time(), dev )
         elseif variable == "Interval" then
             D("plugin_watchCallback() Interval changed, starting new timer thread")
             runStamp = os.time()
@@ -491,6 +673,11 @@ function plugin_init(dev)
     D("plugin_init(%1)", dev)
     L("starting version %1 for device %2", _PLUGIN_VERSION, dev )
 
+    if getVarNumeric("DebugMode",0,dev,MYSID) ~= 0 then
+        debugMode = true
+        D("plugin_init(): Debug enabled by DebugMode state variable")
+    end
+
     -- Check for ALTUI and OpenLuup. ??? need quicker, cleaner check
     for k,v in pairs(luup.devices) do
         if v.device_type == "urn:schemas-upnp-org:device:altui:1" and v.device_num_parent == 0 then
@@ -521,7 +708,12 @@ function plugin_init(dev)
     runStamp = os.time() -- any value we set is fine, really.
     luup.variable_watch( "virtualSensorWatchCallback", MYSID, nil, dev )
     luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
-    
+
+    local children = getChildDevices( nil, dev )
+    for _,n in ipairs( children or {} ) do
+        startChild( n )
+    end
+
     -- Schedule our first tick.
     plugin_scheduleTick( 1, runStamp, dev )
 
@@ -539,7 +731,7 @@ local function getDevice( dev, pdev, v )
     if v == nil then v = luup.devices[dev] end
     local json = require("json")
     if json == nil then json = require("dkjson") end
-    local devinfo = { 
+    local devinfo = {
           devNum=dev
         , ['type']=v.device_type
         , description=v.description or ""
@@ -559,7 +751,7 @@ local function getDevice( dev, pdev, v )
         uri = "http://localhost/port_3480/data_request?id=status&DeviceNum=" .. dev .. "&output_format=json"
     end
     rc,t,httpStatus = luup.inet.wget(uri, 15)
-    if httpStatus ~= 200 or rc ~= 0 then 
+    if httpStatus ~= 200 or rc ~= 0 then
         devinfo['_comment'] = string.format( 'State info could not be retrieved, rc=%s, http=%s', tostring(rc), tostring(httpStatus) )
         return devinfo
     end
@@ -596,7 +788,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
                 isOpenLuup=isOpenLuup,
                 isALTUI=isALTUI,
                 units=luup.attr_get( "TemperatureFormat", 0 ),
-            },            
+            },
             devices={}
         }
         for k,v in pairs( luup.devices ) do
