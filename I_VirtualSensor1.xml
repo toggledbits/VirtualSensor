@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- I_VirtualSensor1.xml -->
 <implementation>
-    <!-- files>L_LuaXP.lua</files -->
     <functions>
         -- -------------------------------------------------------------------------------------------------------------------------
         -- VirtualSensor
