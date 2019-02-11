@@ -347,9 +347,6 @@ var VirtualSensor = (function(api) {
             actionArguments: {},
             onSuccess: function() {
                 jQuery( 'div#vs-content div#notice' ).text( "" );
-            },
-            onFailure: function() {
-                jQuery( 'div#vs-content div#notice' ).text( "Reload request failed. Please try again in 15 seconds or so." );
             }
         });
     }
