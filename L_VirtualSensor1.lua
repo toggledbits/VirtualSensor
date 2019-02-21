@@ -265,6 +265,7 @@ function actionSetValue( dev, val )
         luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", val, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", val, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", val, dev )
+        trip( val ~= 0, dev );
     end
 end
 
