@@ -288,7 +288,7 @@ local function initChild( dev )
         luup.variable_set( MYSID, "SourceVariable", "", dev )
 
         luup.attr_set( 'invisible', 0, dev );
-        
+
         local df = dfMap[ luup.devices[dev].device_type ]
         if df then
             if df.category ~= nil then
