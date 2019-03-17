@@ -21,6 +21,7 @@ local MYTYPE = "urn:schemas-toggledbits-com:device:VirtualSensor:1"
 local SECURITYSID = "urn:micasaverde-com:serviceId:SecuritySensor1"
 local HADEVICESID = "urn:micasaverde-com:serviceId:HaDevice1"
 
+local pluginDevice
 local runStamp = 0
 local isALTUI = false
 local isOpenLuup = false
@@ -308,6 +309,27 @@ local function initChild( dev )
     end
 end
 
+-- Update child virtual sensor.
+local function forceChildUpdate( child )
+    assert( luup.devices[child] )
+    local df = dfMap[ luup.devices[child].device_type ]
+    assert(df, "Device map entry not found for "..tostring(luup.devices[child].device_type))
+    local dev = getVarNumeric( "SourceDevice", -1, child, MYSID )
+    if luup.devices[dev] then
+        local svc = luup.variable_get( MYSID, "SourceServiceId", child ) or "X"
+        local var = luup.variable_get( MYSID, "SourceVariable", child ) or "X"
+        local val = luup.variable_get( svc, var, dev ) or ""
+        local oldval = luup.variable_get( df.service, df.variable, child ) or ""
+        if val ~= oldval then
+            luup.variable_set( df.service, df.variable, val, child )
+        end
+    else
+        L({level=2,msg="Can't update child virtual sensor %1 (#%2): source device %3 no longer exists!"},
+            luup.devices[child].description, child, dev)
+    end
+end
+
+-- Start virtual sensor
 local function startChild( dev )
     D("startChild(%1)", dev)
     local df = dfMap[ luup.devices[dev].device_type ]
@@ -349,15 +371,17 @@ local function startChild( dev )
     end
     luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
 
-    -- Get value right now and set if changed.
-    local s = luup.variable_get( service, variable, dn ) or ""
-    local t = luup.variable_get( df.service, df.variable, dev ) or ""
-    if s ~= t then
-        luup.variable_set( df.service, df.variable, s, dev )
-    end
+    if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
+        L({level=2,"%1 (#%2) not started, parent %1 (#%2) is disabled."},
+            luup.devices[dev].description, dev, luup.devices[pluginDevice].description, pluginDevice)
+        luup.set_failure( 1, dev )
+    else
+        -- Get value right now and set if changed.
+        forceChildUpdate( dev )
 
-    -- Soup is on, baby!
-    luup.set_failure( 0, dev )
+        -- Soup is on, baby!
+        luup.set_failure( 0, dev )
+    end
 end
 
 -- Watched variable for child has changed. Set new value on child.
@@ -509,6 +533,7 @@ function plugin_tick( targ )
         luup.variable_set( MYSID, "BaseTime", baseX, pdev )
     end
     local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 1, nil ) -- no upper bound
+    if per <= 0 then return end -- simulator disabled
     local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
     local nextDelay = freq -- a reasonable default that we may shorten
 
@@ -637,6 +662,10 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
     D("plugin_watchCallback(%1,%2,%3,%4,%5)", dev, service, variable, oldValue, newValue)
     local key = (dev .. "/" .. service .. "/" .. variable):lower()
     if watchMap[key] then
+        -- No child vs updates when disabled.
+        if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
+            return
+        end
         for _,d in ipairs( watchMap[key] ) do
             local success = pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
         end
@@ -657,6 +686,10 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
                 -- Stopping
                 D("plugin_watchCallback() stopping timer loop")
                 runStamp = 0
+                -- Update child sensors
+                for _,child in ipairs( getChildDevices( nil, dev ) or {} ) do
+                    luup.set_failure( 1, child )
+                end
             else
                 -- If Continuity is set, reset the base time to match the progress of the
                 -- function when it stopped, so the next tick provides the next continuous
@@ -668,6 +701,12 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
                 runStamp = os.time()
                 D("plugin_watchCallback() Enabled set, starting timing with new stamp %1", runStamp)
                 plugin_scheduleTick( 1, runStamp, dev, "" )
+
+                -- Update child sensors
+                for _,child in ipairs( getChildDevices( nil, dev ) or {} ) do
+                    luup.set_failure( 0, child )
+                    forceChildUpdate( child )
+                end
             end
         end
     end
@@ -679,6 +718,8 @@ end
 function plugin_init(dev)
     D("plugin_init(%1)", dev)
     L("starting version %1 for device %2", _PLUGIN_VERSION, dev )
+
+    pluginDevice = dev
 
     if getVarNumeric("DebugMode",0,dev,MYSID) ~= 0 then
         debugMode = true
@@ -718,7 +759,7 @@ function plugin_init(dev)
 
     local children = getChildDevices( nil, dev )
     for _,n in ipairs( children or {} ) do
-        startChild( n )
+        pcall( startChild, n )
     end
 
     -- Schedule our first tick.
