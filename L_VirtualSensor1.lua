@@ -532,8 +532,8 @@ function plugin_tick( targ )
         baseX = now
         luup.variable_set( MYSID, "BaseTime", baseX, pdev )
     end
-    local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 1, nil ) -- no upper bound
-    if per <= 0 then return end -- simulator disabled
+    local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 0, nil ) -- no upper bound
+    if per == 0 then return end -- simulator disabled
     local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
     local nextDelay = freq -- a reasonable default that we may shorten
 
