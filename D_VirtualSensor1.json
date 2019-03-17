@@ -243,8 +243,8 @@
                     "Display": {
                         "Top": 90,
                         "Left": 0,
-                        "Width": 120,
-                        "Height": 52
+                        "Width": 190,
+                        "Height": 24
                     },
                     "Command": {
                         "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
@@ -266,9 +266,9 @@
                     },
                     "Display": {
                         "Top": 90,
-                        "Left": 140,
-                        "Width": 120,
-                        "Height": 52
+                        "Left": 200,
+                        "Width": 190,
+                        "Height": 24
                     },
                     "Command": {
                         "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
@@ -290,9 +290,9 @@
                     },
                     "Display": {
                         "Top": 90,
-                        "Left": 280,
-                        "Width": 120,
-                        "Height": 52
+                        "Left": 400,
+                        "Width": 190,
+                        "Height": 24
                     },
                     "Command": {
                         "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
@@ -313,10 +313,10 @@
                         "text": "Add Virtual Generic Sensor"
                     },
                     "Display": {
-                        "Top": 150,
+                        "Top": 120,
                         "Left": 0,
-                        "Width": 120,
-                        "Height": 52
+                        "Width": 190,
+                        "Height": 24
                     },
                     "Command": {
                         "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
@@ -337,10 +337,10 @@
                         "text": "Add Virtual Security Sensor"
                     },
                     "Display": {
-                        "Top": 150,
-                        "Left": 140,
-                        "Width": 120,
-                        "Height": 52
+                        "Top": 120,
+                        "Left": 200,
+                        "Width": 190,
+                        "Height": 24
                     },
                     "Command": {
                         "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
@@ -358,14 +358,14 @@
                     "left": 0,
                     "HorizontalMultiplier": 4,
                     "Display": {
-                        "Top": 210,
+                        "Top": 180,
                         "Left": 0,
                         "Width": 384,
                         "Height": 24
                     },
                     "Label": {
                         "lang_tag": "tb_virtualsensor_about",
-                        "text": "VirtualSensor ver 1.5develop &#169; 2017,2018 Patrick H. Rigney, All Rights Reserved."
+                        "text": "VirtualSensor ver 1.5 &#169; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved."
                     }
                 },
                 {
@@ -377,7 +377,7 @@
                         "text": "<b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.toggledbits.com/donate\">a small donation</a>. I am grateful for any support you choose to give!"
                     },
                     "Display": {
-                        "Top": 240,
+                        "Top": 210,
                         "Left": 0,
                         "Width": 320,
                         "Height": 96
