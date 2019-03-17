@@ -27,7 +27,9 @@ var VirtualSensor = (function(api) {
 
         var msg;
         var el = jQuery("div#message");
-        if ( isNaN( amplitude ) ) {
+        if ( 0 === period ) {
+            msg = "The simulator is disabled. Set period>0 to enable.";
+        } else if ( isNaN( amplitude ) ) {
             el.addClass("tb-red");
             msg = "Please correct the amplitude (non-numeric value)";
         } else if ( isNaN( midline ) ) {
@@ -36,9 +38,9 @@ var VirtualSensor = (function(api) {
         } else if ( isNaN( interval ) || interval < 1 ) {
             el.addClass("tb-red");
             msg = "Invalid interval, must be integer > 0";
-        } else if ( isNaN( period ) || period < 1 ) {
+        } else if ( isNaN( period ) || period < 0 ) {
             el.addClass("tb-red");
-            msg = "Invalid period value, must be integer > 0";
+            msg = "Invalid period value, must be integer >= 0";
         } else if ( isNaN( duty ) || duty < 0 || duty > 100 ) {
             el.addClass("tb-red");
             msg = "Invalid duty cycle, must be 0-100";
@@ -55,11 +57,11 @@ var VirtualSensor = (function(api) {
                 msg += " The sensor will be tripped for about " + t + " seconds of every period.";
             }
         }
-        if ( interval > ( period / 8.0 ) ) {
-            msg += " Your interval may be a bit long (or your period too short) to produce a good range of values.";
+        if ( period > 0 && interval > ( period / 8.0 ) ) {
+            msg += " Your update interval may be a bit long (or your period too short) to produce a good range of values.";
+            jQuery("span#intervalreq").text( isNaN(period) ? "5" : Math.min( 5, Math.max( 1, Math.floor( period / 40 ) ) ) );
         }
         el.text(msg);
-        jQuery("span#intervalreq").text( isNaN(period) ? "5" : Math.min( 5, Math.max( 1, Math.floor( period / 40 ) ) ) );
     }
 
     function onBeforeCpanelClose(args) {
@@ -94,7 +96,7 @@ var VirtualSensor = (function(api) {
 
             // Period
             html += "<div class=\"tb-cgroup pull-left\">";
-            html += "<h2>Period</h2><label for=\"period\">This is the number of seconds the function will take to make a full cycle (that is, from 0 to <i>t</i> on the graph at right).</label><br/>";
+            html += "<h2>Period</h2><label for=\"period\">This is the number of seconds the function will take to make a full cycle (that is, from 0 to <i>t</i> on the graph at right). If 0, the simulator is disabled and will not generate values.</label><br/>";
             html += "<input type=\"text\" size=\"5\" maxlength=\"5\" class=\"numfield\" id=\"period\" />";
             html += "</div>";
 
@@ -168,10 +170,10 @@ var VirtualSensor = (function(api) {
 
             s = parseInt(api.getDeviceState(myDevice, serviceId, "Period"));
             if (isNaN(s))
-                s = "5";
+                s = "0";
             jQuery("input#period").val(s).change( function( obj ) {
                 var newVal = jQuery(this).val();
-                if (newVal.match(/^[0-9]+$/) && newVal > 0) {
+                if (newVal.match(/^[0-9]+$/) && newVal >= 0) {
                     api.setDeviceStatePersistent(myDevice, serviceId, "Period", newVal, 0);
                 }
                 updateMessage( myDevice );
@@ -418,8 +420,12 @@ var VirtualSensor = (function(api) {
             if ( count == 0 ) {
                 container.empty().text( 'There are no virtual sensor devices. Go back to the "Control" tab and create one!' );
             } else {
-                container.append( '<div class="row"><div class="col-xs-12"><button id="reload" class="btn btn-primary">Reload Luup</button><div id="notice"/></div></div>' );
+                container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><button id="reload" class="btn btn-primary">Reload Luup</button><div id="notice"/></div></div>' );
                 jQuery( 'button#reload', container ).on( 'click.vsensor', handleReloadClick );
+                var enab = 0 !== parseInt( api.getDeviceStateVariable( myDevice, serviceId, "Enabled" ) || "0" );
+                if ( !enab ) {
+                    container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
+                }
             }
         }
         catch (e)
