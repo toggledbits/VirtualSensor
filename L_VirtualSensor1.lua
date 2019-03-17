@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.4"
+local _PLUGIN_VERSION = "1.5"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 010202
 
@@ -28,8 +28,8 @@ local isOpenLuup = false
 local watchMap = {}
 
 local dfMap = {
-      ["urn:schemas-micasaverde-com:device:SecuritySensor:1"] =
-            { device_file="D_SecuritySensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped" }
+      ["urn:schemas-micasaverde-com:device:DoorSensor:1"] =
+            { device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped" }
     , ["urn:schemas-micasaverde-com:device:TemperatureSensor:1"] =
             { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature" }
     , ["urn:schemas-micasaverde-com:device:HumiditySensor:1"] =
@@ -265,6 +265,7 @@ function actionSetValue( dev, val )
         luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", val, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", val, dev )
         luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", val, dev )
+        trip( val ~= 0, dev );
     end
 end
 
@@ -285,6 +286,8 @@ local function initChild( dev )
         luup.variable_set( MYSID, "SourceDevice", "", dev )
         luup.variable_set( MYSID, "SourceServiceId", "", dev )
         luup.variable_set( MYSID, "SourceVariable", "", dev )
+
+        luup.attr_set( 'invisible', 0, dev );
 
         local df = dfMap[ luup.devices[dev].device_type ]
         if df then
@@ -329,6 +332,7 @@ local function startChild( dev )
         end
     end
 
+    -- Get source variable.
     local service = luup.variable_get( MYSID, "SourceServiceId", dev ) or ""
     local variable = luup.variable_get( MYSID, "SourceVariable", dev ) or ""
     if service == "" or variable == "" then
@@ -336,6 +340,7 @@ local function startChild( dev )
         return
     end
 
+    -- Add to watch map.
     local key = (dn .. "/" .. service .. "/" .. variable):lower()
     if watchMap[key] then
         table.insert( watchMap[key], dev )
@@ -344,12 +349,14 @@ local function startChild( dev )
     end
     luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
 
+    -- Get value right now and set if changed.
     local s = luup.variable_get( service, variable, dn ) or ""
     local t = luup.variable_get( df.service, df.variable, dev ) or ""
     if s ~= t then
         luup.variable_set( df.service, df.variable, s, dev )
     end
 
+    -- Soup is on, baby!
     luup.set_failure( 0, dev )
 end
 

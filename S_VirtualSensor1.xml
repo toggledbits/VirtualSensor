@@ -63,6 +63,10 @@
             <dataType>boolean</dataType>
             <defaultValue>0</defaultValue>
         </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>A_ARG_TYPE_r4</name>
+            <dataType>r4</dataType>
+        </stateVariable>
     </serviceStateTable>
     <actionList>
         <action>
@@ -111,6 +115,16 @@
                     <name>newEnabledValue</name>
                     <direction>in</direction>
                     <relatedStateVariable>Enabled</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+        <action>
+            <name>SetValue</name>
+            <argumentList>
+                <argument>
+                    <name>newValue</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>A_ARG_TYPE_r4</relatedStateVariable>
                 </argument>
             </argumentList>
         </action>
