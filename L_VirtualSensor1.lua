@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.6develop-19076"
+local _PLUGIN_VERSION = "1.6develop-19078"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 010202
 
@@ -362,23 +362,22 @@ local function startChild( dev )
         return
     end
 
-    -- Add to watch map.
-    local key = (dn .. "/" .. service .. "/" .. variable):lower()
-    if watchMap[key] then
-        table.insert( watchMap[key], dev )
-    else
-        watchMap[key] = { dev }
-    end
-    luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
-
     if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
         L({level=2,"%1 (#%2) not started, parent %1 (#%2) is disabled."},
             luup.devices[dev].description, dev, luup.devices[pluginDevice].description, pluginDevice)
         luup.set_failure( 1, dev )
     else
+        -- Add to watch map.
+        local key = (dn .. "/" .. service .. "/" .. variable):lower()
+        watchMap[key] = watchMap[key] or {}
+        if not watchMap[key][tostring(dev)] then
+            watchMap[key][tostring(dev)] = dev
+            luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
+        end
+
         -- Get value right now and set if changed.
         forceChildUpdate( dev )
-
+        
         -- Soup is on, baby!
         luup.set_failure( 0, dev )
     end
@@ -660,16 +659,21 @@ end
 -- Watch callback
 function plugin_watchCallback( dev, service, variable, oldValue, newValue )
     D("plugin_watchCallback(%1,%2,%3,%4,%5)", dev, service, variable, oldValue, newValue)
+    -- Ignore all non-changes
+    if oldValue == newValue then return end
+    
+    -- Child update?
     local key = (dev .. "/" .. service .. "/" .. variable):lower()
     if watchMap[key] then
         -- No child vs updates when disabled.
         if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
             return
         end
-        for _,d in ipairs( watchMap[key] ) do
+        for _,d in pairs( watchMap[key] ) do
             local success = pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
         end
     end
+    
     -- Also check and do these, in case someone makes a child that looks at us.
     -- We still have work to do, you know.
     if service == MYSID then
@@ -681,7 +685,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
             runStamp = os.time()
             plugin_scheduleTick( tonumber(newValue) or 1, runStamp, dev, "" )
         elseif variable == "Enabled" then
-            newValue = tonumber(newValue, 10) or 0
+            newValue = tonumber(newValue or 0) or 0
             if newValue == 0 then
                 -- Stopping
                 D("plugin_watchCallback() stopping timer loop")
@@ -702,12 +706,21 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
                 D("plugin_watchCallback() Enabled set, starting timing with new stamp %1", runStamp)
                 plugin_scheduleTick( 1, runStamp, dev, "" )
 
-                -- Update child sensors
+                -- Restart child sensors
                 for _,child in ipairs( getChildDevices( nil, dev ) or {} ) do
-                    luup.set_failure( 0, child )
-                    forceChildUpdate( child )
+                    pcall( startChild, child )
                 end
             end
+        elseif variable == "SourceDevice" or variable == "SourceServiceId" or variable == "SourceVariable" then
+            -- Source changed for child. Restart child.
+            D("plugin_watchCallback() child %1 (#%2) source change (%3 %4->%5), restarting child",
+                luup.devices[dev].description, dev, variable, oldValue, newValue)
+            -- Remove child from watchMap
+            for _,a in pairs( watchMap or {} ) do
+                a[tostring(dev)] = nil
+            end
+            -- Restart child (re-adds to watchMap in correct key)
+            pcall( startChild, dev )
         end
     end
 end
@@ -755,11 +768,15 @@ function plugin_init(dev)
     -- Other inits here
     runStamp = os.time() -- any value we set is fine, really.
     luup.variable_watch( "virtualSensorWatchCallback", MYSID, nil, dev )
-    luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
+    -- luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
 
-    local children = getChildDevices( nil, dev )
-    for _,n in ipairs( children or {} ) do
-        pcall( startChild, n )
+    for _,n in ipairs( getChildDevices( nil, dev ) or {} ) do
+        if pcall( startChild, n ) then
+            -- Watch our own configuration
+            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceDevice", child )
+            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceServiceId", child )
+            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceVariable", child )
+        end
     end
 
     -- Schedule our first tick.
