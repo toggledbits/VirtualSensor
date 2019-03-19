@@ -304,31 +304,27 @@ var VirtualSensor = (function(api) {
         var vs = el.val();
         var variable = vs.replace( /^[^\/]+\//, "" );
         var service = vs.replace( /\/.*$/, "" );
+        /* First the device */
         api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceDevice", isNaN( device ) ? "" : device,
         {
             'onSuccess' : function() {
+                /* ...then service ID */
+                api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceServiceId", service || "",
+                {
+                    'onSuccess' : function() {
+                        /* Variable MUST be last. */
+                        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceVariable", variable || "",
+                        {
+                            'onSuccess' : function() {
+                            }
+                        });
+                    }
+                });
             },
             'onFailure' : function() {
                 alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
             }
         });
-        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceServiceId", service || "",
-        {
-            'onSuccess' : function() {
-            },
-            'onFailure' : function() {
-                alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
-            }
-        });
-        api.setDeviceStateVariablePersistent( vsdevice, serviceId, "SourceVariable", variable || "",
-        {
-            'onSuccess' : function() {
-            },
-            'onFailure' : function() {
-                alert('There was a problem saving the configuration. Vera/Luup may have been restarting. Please try again in 5-10 seconds.');
-            }
-        });
-        jQuery( 'div#vs-content div#notice' ).text( "After making changes, you need to Reload Luup to make them take effect." );
     }
 
     function handleDeviceChange( ev ) {
@@ -341,7 +337,7 @@ var VirtualSensor = (function(api) {
             var m = makeVariableMenu( device );
             jQuery( 'select.varmenu', row ).append( m.children() );
         }
-        handleVariableChange( vm );
+        vm.change();
     }
     
     function waitForReload() {
@@ -356,16 +352,14 @@ var VirtualSensor = (function(api) {
             timeout: 5000
         }).done( function( data, statusText, jqXHR ) {
             var key = "Device_Num_" + api.getCpanelDeviceId();
-            console.log("waitForReload() valid response, status=" + typeof((data[key] || {}).status) + " " + String((data[key] || {}).status));
             if ( data[key] && -1 === parseInt( data[key].status ) ) {
-                console.log("waitForReload() ready!");
-                jQuery( 'div#vs-content button#addchild' ).prop( 'disabled', false );
-                jQuery( 'div#vs-content div#notice' ).text( "" );
+                setTimeout( redrawChildren, 2000 );
             } else {
+                jQuery( 'div#vs-content div#notice' ).append( "&ndash;" );
                 setTimeout( waitForReload, 1000 );
             }
         }).fail( function( jqXHR, textStatus, errorThrown ) {
-            console.log("waitForReload() response fail, keep waiting");
+            jQuery( 'div#vs-content div#notice' ).append( "&bull;" );
             setTimeout( waitForReload, 2000 );
         });
     }
@@ -386,100 +380,124 @@ var VirtualSensor = (function(api) {
                     alert( "An error occurred. Try again in a moment; Vera may be busy." );
                 }
             } );
+        } else {
+            jQuery( 'div#notice', row ).text("Wählen Sie zuerst einen Typ!");
+        }
+    }
+
+    function redrawChildren() {
+        var myDevice = api.getCpanelDeviceId();
+        var devices = api.cloneObject( api.getListOfDevices() );
+        var mm = jQuery( '<select class="devicemenu form-control form-control-sm" />' );
+        mm.append( '<option value="">--choose device--</option>' );
+        devices.sort( function( a, b ) {
+            if ( (a.name || "").toLowerCase() == (b.name || "").toLowerCase() ) {
+                return 0;
+            }
+            return (a.name || "").toLowerCase() < (b.name || "").toLowerCase() ? -1 : 1;
+        });
+        for ( var ix=0; ix<(devices || []).length; ix++ ) {
+            var opt = jQuery( '<option/>');
+            opt.val( devices[ix].id );
+            opt.text( devices[ix].name + " (#" + devices[ix].id + ")" );
+            mm.append( opt );
+        }
+
+        var container = jQuery( 'div#vs-content' ).empty();
+        var count = 0;
+        var row = jQuery( '<div class="row vshead" />' );
+        row.append( '<div class="col-xs-12 col-sm-6 col-lg-3">Virtual Sensor Name (Id)</div>' );
+        row.append( '<div class="col-xs-12 col-sm-6 col-lg-9">Source Device/Value</div>' );
+        container.append( row );
+        for ( ix=0; ix<(devices || []).length; ix++ ) {
+            var v = devices[ix];
+            if ( v.id_parent == myDevice ) {
+                row = jQuery( '<div class="row" />' );
+                row.attr( 'id', v.id );
+
+                var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3 vsname" />' );
+                row.append( col.text( v.name + ' (#' + v.id + ')' ) );
+
+                /* Device menu for row */
+                col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-9 form-inline" />' );
+                var sourcedevice = parseInt( api.getDeviceStateVariable( v.id, serviceId, "SourceDevice" ) || "-1" );
+                var dm = mm.clone();
+                if ( jQuery( 'option [value="' + sourcedevice + '"]' ).length == 0 ) {
+                    dm.append( jQuery( '<option/>' ).val( sourcedevice ).text( "Missing device " + sourcedevice ) );
+                }
+                dm.val( sourcedevice );
+                col.append( dm );
+                dm.on( 'change.vsensor', handleDeviceChange );
+
+                /* Variable menu for row */
+                var service = api.getDeviceStateVariable( v.id, serviceId, "SourceServiceId" ) || "";
+                var variable = api.getDeviceStateVariable( v.id, serviceId, "SourceVariable" ) || "";
+                var key = service + "/" + variable;
+                dm = makeVariableMenu( sourcedevice, key );
+                col.append( dm );
+                dm.on( 'change.vsensor', handleVariableChange );
+
+                row.append( col );
+
+                container.append( row );
+                ++count;
+            }
+        }
+
+        var enab = 0 !== parseInt( api.getDeviceStateVariable( myDevice, serviceId, "Enabled" ) || "0" );
+        if ( !enab ) {
+            container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
+        } else {
+            row = jQuery( '<div class="row vscontrol" />' );
+            var br = jQuery( '<div class="col-xs-12 col-sm-12 form-inline" />' );
+            var sel = jQuery( '<select id="childtype" class="form-control form-control-sm" />' );
+            sel.append( jQuery( '<option/>' ).val("").text('--choose type--') ).val( "" ); /* default */
+            br.append( sel );
+            br.append( '<button id="addchild" class="btn btn-md btn-primary">Create New Virtual Sensor</button>' );
+            br.append( '<div id="notice" />' );
+            container.append( row.append( br ) );
+            /* Now, populate the menu */
+            jQuery( 'button#addchild', container ).on( 'click.virtualsensor', handleAddChildClick ).prop( 'disabled', true );
+            jQuery.ajax({
+                url: api.getDataRequestURL(),
+                data: {
+                    id: "lr_VirtualSensor",
+                    action: "getvtypes"
+                },
+                dataType: "json",
+                timeout: 5000
+            }).done( function( data, statusText, jqXHR ) {
+                var hasOne = false;
+                var childMenu = jQuery( 'div#vs-content select#childtype' );
+                for ( var ch in data ) {
+                    if ( data.hasOwnProperty( ch ) ) {
+                        childMenu.append( jQuery( '<option/>' ).val( ch ).text( data[ch].name || ch ) );
+                        hasOne = true;
+                    }
+                }
+                if ( hasOne ) {
+                    jQuery( 'div#vs-content button#addchild' ).prop( 'disabled', false );
+                }
+            }).fail( function( jqXHR ) {
+                alert( "There was an error loading configuration data. Vera may be busy; try again in a moment." );
+            });
         }
     }
 
     function doVirtualSensors() {
         try {
-            var ix;
-
             initPlugin();
 
-            var myDevice = api.getCpanelDeviceId();
-            
             var html = '<style>';
             html += 'div#vs-content .vshead { background-color: #428bca; color: #fff; min-height: 42px; font-size: 16px; font-weight: bold; line-height: 1.5em; padding: 8px 0; }';
             html += 'div#vs-content .vsname { padding: 8px 0; }';
+            html += 'div#vs-content div.vscontrol { border-top: 1px solid black; padding: 8px 0; }';
             html += '</style>';
             jQuery( 'head' ).append( html );
 
-            html = '<div id="vs-content" />';
-            api.setCpanelContent(html);
+            api.setCpanelContent( '<div id="vs-content" />' );
 
-            var devices = api.cloneObject( api.getListOfDevices() );
-            var mm = jQuery( '<select class="devicemenu form-control form-control-sm" />' );
-            mm.append( '<option value="">--choose device--</option>' );
-            devices.sort( function( a, b ) {
-                if ( (a.name || "").toLowerCase() == (b.name || "").toLowerCase() ) {
-                    return 0;
-                }
-                return (a.name || "").toLowerCase() < (b.name || "").toLowerCase() ? -1 : 1;
-            });
-            for ( ix=0; ix<(devices || []).length; ix++ ) {
-                var opt = jQuery( '<option/>');
-                opt.val( devices[ix].id );
-                opt.text( devices[ix].name + " (#" + devices[ix].id + ")" );
-                mm.append( opt );
-            }
-
-            var container = jQuery( 'div#vs-content' );
-            var count = 0;
-            var row = jQuery( '<div class="row vshead" />' );
-            row.append( '<div class="col-xs-12 col-sm-6 col-lg-3">Virtual Sensor Name (Id)</div>' );
-            row.append( '<div class="col-xs-12 col-sm-6 col-lg-9">Source Device/Value</div>' );
-            container.append( row );
-            for ( ix=0; ix<(devices || []).length; ix++ ) {
-                var v = devices[ix];
-                if ( v.id_parent == myDevice ) {
-                    row = jQuery( '<div class="row" />' );
-                    row.attr( 'id', v.id );
-
-                    var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3 vsname" />' );
-                    row.append( col.text( v.name + ' (#' + v.id + ')' ) );
-
-                    /* Device menu for row */
-                    col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-9 form-inline" />' );
-                    var sourcedevice = parseInt( api.getDeviceStateVariable( v.id, serviceId, "SourceDevice" ) || "-1" );
-                    var dm = mm.clone();
-                    if ( jQuery( 'option [value="' + sourcedevice + '"]' ).length == 0 ) {
-                        dm.append( jQuery( '<option/>' ).val( sourcedevice ).text( "Missing device " + sourcedevice ) );
-                    }
-                    dm.val( sourcedevice );
-                    col.append( dm );
-                    dm.on( 'change.vsensor', handleDeviceChange );
-
-                    /* Variable menu for row */
-                    var service = api.getDeviceStateVariable( v.id, serviceId, "SourceServiceId" ) || "";
-                    var variable = api.getDeviceStateVariable( v.id, serviceId, "SourceVariable" ) || "";
-                    var key = service + "/" + variable;
-                    dm = makeVariableMenu( sourcedevice, key );
-                    col.append( dm );
-                    dm.on( 'change.vsensor', handleVariableChange );
-
-                    row.append( col );
-
-                    container.append( row );
-                    ++count;
-                }
-            }
-
-            var enab = 0 !== parseInt( api.getDeviceStateVariable( myDevice, serviceId, "Enabled" ) || "0" );
-            if ( !enab ) {
-                container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
-            } else {
-                var br = jQuery( '<div class="col-xs-12 col-sm-12 form-inline" />' );
-                var sel = jQuery( '<select id="childtype" class="form-control form-control-sm" />' );
-                sel.append( '<option value="urn:schemas-micasaverde-com:device:TemperatureSensor:1">Temperature</option>' );
-                sel.append( '<option value="urn:schemas-micasaverde-com:device:HumiditySensor:1">Humidity</option>' );
-                sel.append( '<option value="urn:schemas-micasaverde-com:device:LightSensor:1">Light</option>' );
-                sel.append( '<option value="urn:schemas-micasaverde-com:device:GenericSensor:1">Generic</option>' );
-                sel.append( '<option value="urn:schemas-micasaverde-com:device:DoorSensor:1">Door/Security</option>' );
-                br.append( sel );
-                br.append( '<button id="addchild" class="btn btn-sm btn-default">Create New Virtual Sensor</button>' );
-                br.append( '<div id="notice" />' );
-                container.append( br );
-                jQuery( 'button#addchild', container ).on( 'click.virtualsensor', handleAddChildClick );
-            }
+            redrawChildren();
         }
         catch (e)
         {

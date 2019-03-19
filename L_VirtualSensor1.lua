@@ -30,15 +30,15 @@ local watchMap = {}
 
 local dfMap = {
       ["urn:schemas-micasaverde-com:device:DoorSensor:1"] =
-            { device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped" }
+            { device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped", name="Door/Security (binary)" }
     , ["urn:schemas-micasaverde-com:device:TemperatureSensor:1"] =
-            { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature" }
+            { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature", name="Temperature" }
     , ["urn:schemas-micasaverde-com:device:HumiditySensor:1"] =
-            { device_file="D_HumiditySensor1.xml", category=16, service="urn:micasaverde-com:serviceId:HumiditySensor1", variable="CurrentLevel" }
+            { device_file="D_HumiditySensor1.xml", category=16, service="urn:micasaverde-com:serviceId:HumiditySensor1", variable="CurrentLevel", name="Humidity" }
     , ["urn:schemas-micasaverde-com:device:LightSensor:1"] =
-            { device_file="D_LightSensor1.xml", category=18, service="rn:micasaverde-com:serviceId:LightSensor1", variable="CurrentLevel" }
+            { device_file="D_LightSensor1.xml", category=18, service="urn:micasaverde-com:serviceId:LightSensor1", variable="CurrentLevel", name="Light" }
     , ["urn:schemas-micasaverde-com:device:GenericSensor:1"] =
-            { device_file="D_GenericSensor1.xml", category=12, service="urn:micasaverde-com:serviceId:GenericSensor1", variable="CurrentLevel" }
+            { device_file="D_GenericSensor1.xml", category=12, service="urn:micasaverde-com:serviceId:GenericSensor1", variable="CurrentLevel", name="Generic" }
 }
 
 --[[ const ]] local tau = 6.28318531 -- tau > pi
@@ -711,7 +711,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
                     pcall( startChild, child )
                 end
             end
-        elseif variable == "SourceDevice" or variable == "SourceServiceId" or variable == "SourceVariable" then
+        elseif variable == "SourceVariable" then -- UI always writes SourceVariable, always writes it LAST.
             -- Source changed for child. Restart child.
             D("plugin_watchCallback() child %1 (#%2) source change (%3 %4->%5), restarting child",
                 luup.devices[dev].description, dev, variable, oldValue, newValue)
@@ -837,7 +837,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
     end
 
     if action == "status" then
-        local json = require("json")
+        local json = require("dkjson")
         if json == nil then json = require("dkjson") end
         local st = {
             name=_PLUGIN_NAME,
@@ -895,6 +895,26 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
             end
         end
         return string.format("Done with %q for %d devices matching alias %q", action, nDev, alias), "text/plain"
+    elseif action == "getvtypes" then
+        local json = require("dkjson")
+        local r = {}
+        if isOpenLuup then
+            -- For openLuup, only show device types for resources that are installed
+            local loader = require "openLuup.loader"
+            if loader.find_file ~= nil then
+                for k,v in pairs( dfMap ) do
+                    if loader.find_file( v.device_file ) then 
+                        r[k] = v
+                    end
+                end
+            else
+                L{level=1,msg="PLEASE UPGRADE YOUR OPENLUUP TO 181122 OR HIGHER FOR FULL SUPPORT OF SITESENSOR VIRTUAL DEVICES"}
+            end
+        else
+            r = dfMap
+        end
+        return json.encode( r ), "application/json"
+                
     else
         return string.format("Action %q not implemented", action), "text/plain"
     end
