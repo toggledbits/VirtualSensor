@@ -771,12 +771,7 @@ function plugin_init(dev)
     -- luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
 
     for _,n in ipairs( getChildDevices( nil, dev ) or {} ) do
-        if pcall( startChild, n ) then
-            -- Watch our own configuration
-            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceDevice", child )
-            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceServiceId", child )
-            luup.variable_watch( "virtualSensorWatchCallback", MYSID, "SourceVariable", child )
-        end
+        pcall( startChild, n )
     end
 
     -- Schedule our first tick.
