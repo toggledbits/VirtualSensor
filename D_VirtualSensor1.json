@@ -233,179 +233,44 @@
                     "ControlCode": "cmd_reset_battery"
                 },
                 {
-                    "ControlType": "button",
-                    "top": "1",
-                    "left": "2",
-                    "Label": {
-                        "lang_tag": "tb_addchildtemp",
-                        "text": "Add Virtual Temp Sensor"
-                    },
-                    "Display": {
-                        "Top": 90,
-                        "Left": 0,
-                        "Width": 190,
-                        "Height": 24
-                    },
-                    "Command": {
-                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-                        "Action": "AddChild",
-                        "Parameters": [{
-                            "Name": "NewChildDeviceType",
-                            "Value": "urn:schemas-micasaverde-com:device:TemperatureSensor:1"
-                        }]
-                    },
-                    "ControlCode": "cmd_child_temp"
-                },
-                {
-                    "ControlType": "button",
-                    "top": "1",
-                    "left": "2",
-                    "Label": {
-                        "lang_tag": "tb_addchildhum",
-                        "text": "Add Virtual Humidity Sensor"
-                    },
-                    "Display": {
-                        "Top": 90,
-                        "Left": 200,
-                        "Width": 190,
-                        "Height": 24
-                    },
-                    "Command": {
-                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-                        "Action": "AddChild",
-                        "Parameters": [{
-                            "Name": "NewChildDeviceType",
-                            "Value": "urn:schemas-micasaverde-com:device:HumiditySensor:1"
-                        }]
-                    },
-                    "ControlCode": "cmd_child_humidity"
-                },
-                {
-                    "ControlType": "button",
-                    "top": "1",
-                    "left": "2",
-                    "Label": {
-                        "lang_tag": "tb_addchildlight",
-                        "text": "Add Virtual Light Sensor"
-                    },
-                    "Display": {
-                        "Top": 90,
-                        "Left": 400,
-                        "Width": 190,
-                        "Height": 24
-                    },
-                    "Command": {
-                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-                        "Action": "AddChild",
-                        "Parameters": [{
-                            "Name": "NewChildDeviceType",
-                            "Value": "urn:schemas-micasaverde-com:device:LightSensor:1"
-                        }]
-                    },
-                    "ControlCode": "cmd_child_light"
-                },
-                {
-                    "ControlType": "button",
-                    "top": "1",
-                    "left": "2",
-                    "Label": {
-                        "lang_tag": "tb_addchildgeneric",
-                        "text": "Add Virtual Generic Sensor"
-                    },
-                    "Display": {
-                        "Top": 120,
-                        "Left": 0,
-                        "Width": 190,
-                        "Height": 24
-                    },
-                    "Command": {
-                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-                        "Action": "AddChild",
-                        "Parameters": [{
-                            "Name": "NewChildDeviceType",
-                            "Value": "urn:schemas-micasaverde-com:device:GenericSensor:1"
-                        }]
-                    },
-                    "ControlCode": "cmd_child_generic"
-                },
-                {
-                    "ControlType": "button",
-                    "top": "1",
-                    "left": "2",
-                    "Label": {
-                        "lang_tag": "tb_childsecurity",
-                        "text": "Add Virtual Security Sensor"
-                    },
-                    "Display": {
-                        "Top": 120,
-                        "Left": 200,
-                        "Width": 190,
-                        "Height": 24
-                    },
-                    "Command": {
-                        "Service": "urn:toggledbits-com:serviceId:VirtualSensor1",
-                        "Action": "AddChild",
-                        "Parameters": [{
-                            "Name": "NewChildDeviceType",
-                            "Value": "urn:schemas-micasaverde-com:device:SecuritySensor:1"
-                        }]
-                    },
-                    "ControlCode": "cmd_child_security"
-                },
-                {
                     "ControlType": "label",
                     "top": 0,
                     "left": 0,
                     "HorizontalMultiplier": 4,
                     "Display": {
-                        "Top": 180,
+                        "Top": 90,
                         "Left": 0,
                         "Width": 384,
                         "Height": 24
                     },
                     "Label": {
                         "lang_tag": "tb_virtualsensor_about",
-                        "text": "VirtualSensor ver 1.5 &#169; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved."
-                    }
-                },
-                {
-                    "ControlType": "label",
-                    "top": 0,
-                    "left": 0,
-                    "Label": {
-                        "lang_tag": "tb_virtualsensor_donate",
-                        "text": "<b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.toggledbits.com/donate\">a small donation</a>. I am grateful for any support you choose to give!"
-                    },
-                    "Display": {
-                        "Top": 210,
-                        "Left": 0,
-                        "Width": 320,
-                        "Height": 96
+                        "text": "VirtualSensor ver 1.6develop-19078 &#169; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved.<p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href=\"https://www.toggledbits.com/donate\">a small donation</a>. I am grateful for any support you choose to give!</p>"
                     }
                 }
             ]
         },
         {
             "Label": {
-                "lang_tag": "tb_virtualsensor_settings",
-                "text": "Simulator"
+                "lang_tag": "tb_virtualsensor_vsensors",
+                "text": "Virtual Sensors"
             },
-            "Position": "1",
+            "Position": 1,
             "TopNavigationTab": 1,
             "TabType": "javascript",
             "ScriptName": "J_VirtualSensor1_UI7.js",
-            "Function": "VirtualSensor.configurePlugin"
+            "Function": "VirtualSensor.doVirtualSensors"
         },
         {
             "Label": {
-                "lang_tag": "tb_virtualsensor_vsensors",
-                "text": "Virtual Sensors"
+                "lang_tag": "tb_virtualsensor_settings",
+                "text": "Simulator"
             },
             "Position": 2,
             "TopNavigationTab": 1,
             "TabType": "javascript",
             "ScriptName": "J_VirtualSensor1_UI7.js",
-            "Function": "VirtualSensor.doVirtualSensors"
+            "Function": "VirtualSensor.configurePlugin"
         },
         {
             "Label": {
