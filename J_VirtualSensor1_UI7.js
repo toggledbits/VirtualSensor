@@ -343,14 +343,50 @@ var VirtualSensor = (function(api) {
         }
         handleVariableChange( vm );
     }
-
-    function handleReloadClick( ev ) {
-        api.performActionOnDevice( 0, "urn:micasaverde-com:serviceId:HomeAutomationGateway1", "Reload", {
-            actionArguments: {},
-            onSuccess: function() {
+    
+    function waitForReload() {
+        jQuery.ajax({
+            url: api.getDataRequestURL(),
+            data: {
+                id: "status",
+                DeviceNum: api.getCpanelDeviceId(),
+                output_format: "json"
+            },
+            dataType: "json",
+            timeout: 5000
+        }).done( function( data, statusText, jqXHR ) {
+            var key = "Device_Num_" + api.getCpanelDeviceId();
+            console.log("waitForReload() valid response, status=" + typeof((data[key] || {}).status) + " " + String((data[key] || {}).status));
+            if ( data[key] && -1 === parseInt( data[key].status ) ) {
+                console.log("waitForReload() ready!");
+                jQuery( 'div#vs-content button#addchild' ).prop( 'disabled', false );
                 jQuery( 'div#vs-content div#notice' ).text( "" );
+            } else {
+                setTimeout( waitForReload, 1000 );
             }
+        }).fail( function( jqXHR, textStatus, errorThrown ) {
+            console.log("waitForReload() response fail, keep waiting");
+            setTimeout( waitForReload, 2000 );
         });
+    }
+
+    function handleAddChildClick( ev ) {
+        var el = jQuery( ev.currentTarget );
+        var row = el.closest( 'div.row' );
+        var childType = jQuery( 'select#childtype', row ).val() || "";
+        if ( "" !== childType ) {
+            api.performActionOnDevice( api.getCpanelDeviceId(), serviceId, "AddChild", {
+                actionArguments: { NewChildDeviceType: childType },
+                onSuccess: function( xhr ) {
+                    el.prop( 'disabled', true );
+                    jQuery( 'div#notice', row ).text("Creating child... please wait while Luup reloads...");
+                    setTimeout( waitForReload, 5000 );
+                },
+                onFailure: function( xhr ) {
+                    alert( "An error occurred. Try again in a moment; Vera may be busy." );
+                }
+            } );
+        }
     }
 
     function doVirtualSensors() {
@@ -360,8 +396,14 @@ var VirtualSensor = (function(api) {
             initPlugin();
 
             var myDevice = api.getCpanelDeviceId();
+            
+            var html = '<style>';
+            html += 'div#vs-content .vshead { background-color: #428bca; color: #fff; min-height: 42px; font-size: 16px; font-weight: bold; line-height: 1.5em; padding: 8px 0; }';
+            html += 'div#vs-content .vsname { padding: 8px 0; }';
+            html += '</style>';
+            jQuery( 'head' ).append( html );
 
-            var html = '<div id="vs-content" />';
+            html = '<div id="vs-content" />';
             api.setCpanelContent(html);
 
             var devices = api.cloneObject( api.getListOfDevices() );
@@ -382,14 +424,18 @@ var VirtualSensor = (function(api) {
 
             var container = jQuery( 'div#vs-content' );
             var count = 0;
+            var row = jQuery( '<div class="row vshead" />' );
+            row.append( '<div class="col-xs-12 col-sm-6 col-lg-3">Virtual Sensor Name (Id)</div>' );
+            row.append( '<div class="col-xs-12 col-sm-6 col-lg-9">Source Device/Value</div>' );
+            container.append( row );
             for ( ix=0; ix<(devices || []).length; ix++ ) {
                 var v = devices[ix];
                 if ( v.id_parent == myDevice ) {
-                    var row = jQuery( '<div class="row" />' );
+                    row = jQuery( '<div class="row" />' );
                     row.attr( 'id', v.id );
 
-                    var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3" />' );
-                    row.append( col.text( v.name ) );
+                    var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3 vsname" />' );
+                    row.append( col.text( v.name + ' (#' + v.id + ')' ) );
 
                     /* Device menu for row */
                     col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-9 form-inline" />' );
@@ -417,15 +463,22 @@ var VirtualSensor = (function(api) {
                 }
             }
 
-            if ( count == 0 ) {
-                container.empty().text( 'There are no virtual sensor devices. Go back to the "Control" tab and create one!' );
+            var enab = 0 !== parseInt( api.getDeviceStateVariable( myDevice, serviceId, "Enabled" ) || "0" );
+            if ( !enab ) {
+                container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
             } else {
-                container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><button id="reload" class="btn btn-primary">Reload Luup</button><div id="notice"/></div></div>' );
-                jQuery( 'button#reload', container ).on( 'click.vsensor', handleReloadClick );
-                var enab = 0 !== parseInt( api.getDeviceStateVariable( myDevice, serviceId, "Enabled" ) || "0" );
-                if ( !enab ) {
-                    container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
-                }
+                var br = jQuery( '<div class="col-xs-12 col-sm-12 form-inline" />' );
+                var sel = jQuery( '<select id="childtype" class="form-control form-control-sm" />' );
+                sel.append( '<option value="urn:schemas-micasaverde-com:device:TemperatureSensor:1">Temperature</option>' );
+                sel.append( '<option value="urn:schemas-micasaverde-com:device:HumiditySensor:1">Humidity</option>' );
+                sel.append( '<option value="urn:schemas-micasaverde-com:device:LightSensor:1">Light</option>' );
+                sel.append( '<option value="urn:schemas-micasaverde-com:device:GenericSensor:1">Generic</option>' );
+                sel.append( '<option value="urn:schemas-micasaverde-com:device:DoorSensor:1">Door/Security</option>' );
+                br.append( sel );
+                br.append( '<button id="addchild" class="btn btn-sm btn-default">Create New Virtual Sensor</button>' );
+                br.append( '<div id="notice" />' );
+                container.append( br );
+                jQuery( 'button#addchild', container ).on( 'click.virtualsensor', handleAddChildClick );
             }
         }
         catch (e)
