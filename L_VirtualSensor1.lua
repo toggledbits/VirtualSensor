@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.6develop-19078"
+local _PLUGIN_VERSION = "1.6develop-19087"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 010202
 
@@ -513,7 +513,7 @@ function plugin_tick( targ )
     D("plugin_tick(%1) stepStamp %2, pdev %3, passthru %4", targ, stepStamp, pdev, passthru)
     pdev = tonumber( pdev, 10 )
     assert( pdev ~= nil and luup.devices[pdev] )
-    stepStamp = tonumber( stepStamp, 10 )
+    stepStamp = tonumber( stepStamp )
     if stepStamp ~= runStamp then
         D("plugin_tick() got stepStamp %1, expected %2, another thread running, so exiting...", stepStamp, runStamp)
         return

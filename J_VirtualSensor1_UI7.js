@@ -16,6 +16,10 @@ var VirtualSensor = (function(api) {
     var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 
     var myModule = {};
+    
+    function footer() {
+        return '<hr><p>&copy; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.toggledbits.com/donate" target="_blank">a small donation</a>. I am grateful for any support you choose to give!</p>';
+    }
 
     function updateMessage( dev ) {
         var amplitude = parseFloat( jQuery( "input#amplitude" ).val() );
@@ -150,7 +154,7 @@ var VirtualSensor = (function(api) {
             html += ' Note that due to the resolution of the timer, the full range of values may not be seen, including the mathematical min/max.';
             html += '</div>';
 
-			html += '<hr><p>&copy; 2017, 2018 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.toggledbits.com/donate" target="_blank">a small donation</a>. I am grateful for any support you choose to give!</p>';
+            html += footer();
 
             // Push generated HTML to page
             api.setCpanelContent(html);
@@ -495,7 +499,9 @@ var VirtualSensor = (function(api) {
             html += '</style>';
             jQuery( 'head' ).append( html );
 
-            api.setCpanelContent( '<div id="vs-content" />' );
+            html = '<div id="vs-content" />';
+            html += footer();
+            api.setCpanelContent( html );
 
             redrawChildren();
         }
