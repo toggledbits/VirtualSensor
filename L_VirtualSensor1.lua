@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.5"
+local _PLUGIN_VERSION = "1.6"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 010202
 
@@ -30,15 +30,15 @@ local watchMap = {}
 
 local dfMap = {
       ["urn:schemas-micasaverde-com:device:DoorSensor:1"] =
-            { device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped" }
+            { device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped", name="Door/Security (binary)" }
     , ["urn:schemas-micasaverde-com:device:TemperatureSensor:1"] =
-            { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature" }
+            { device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature", name="Temperature" }
     , ["urn:schemas-micasaverde-com:device:HumiditySensor:1"] =
-            { device_file="D_HumiditySensor1.xml", category=16, service="urn:micasaverde-com:serviceId:HumiditySensor1", variable="CurrentLevel" }
+            { device_file="D_HumiditySensor1.xml", category=16, service="urn:micasaverde-com:serviceId:HumiditySensor1", variable="CurrentLevel", name="Humidity" }
     , ["urn:schemas-micasaverde-com:device:LightSensor:1"] =
-            { device_file="D_LightSensor1.xml", category=18, service="rn:micasaverde-com:serviceId:LightSensor1", variable="CurrentLevel" }
+            { device_file="D_LightSensor1.xml", category=18, service="urn:micasaverde-com:serviceId:LightSensor1", variable="CurrentLevel", name="Light" }
     , ["urn:schemas-micasaverde-com:device:GenericSensor:1"] =
-            { device_file="D_GenericSensor1.xml", category=12, service="urn:micasaverde-com:serviceId:GenericSensor1", variable="CurrentLevel" }
+            { device_file="D_GenericSensor1.xml", category=12, service="urn:micasaverde-com:serviceId:GenericSensor1", variable="CurrentLevel", name="Generic" }
 }
 
 --[[ const ]] local tau = 6.28318531 -- tau > pi
@@ -362,23 +362,22 @@ local function startChild( dev )
         return
     end
 
-    -- Add to watch map.
-    local key = (dn .. "/" .. service .. "/" .. variable):lower()
-    if watchMap[key] then
-        table.insert( watchMap[key], dev )
-    else
-        watchMap[key] = { dev }
-    end
-    luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
-
     if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
         L({level=2,"%1 (#%2) not started, parent %1 (#%2) is disabled."},
             luup.devices[dev].description, dev, luup.devices[pluginDevice].description, pluginDevice)
         luup.set_failure( 1, dev )
     else
+        -- Add to watch map.
+        local key = (dn .. "/" .. service .. "/" .. variable):lower()
+        watchMap[key] = watchMap[key] or {}
+        if not watchMap[key][tostring(dev)] then
+            watchMap[key][tostring(dev)] = dev
+            luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
+        end
+
         -- Get value right now and set if changed.
         forceChildUpdate( dev )
-
+        
         -- Soup is on, baby!
         luup.set_failure( 0, dev )
     end
@@ -514,7 +513,7 @@ function plugin_tick( targ )
     D("plugin_tick(%1) stepStamp %2, pdev %3, passthru %4", targ, stepStamp, pdev, passthru)
     pdev = tonumber( pdev, 10 )
     assert( pdev ~= nil and luup.devices[pdev] )
-    stepStamp = tonumber( stepStamp, 10 )
+    stepStamp = tonumber( stepStamp )
     if stepStamp ~= runStamp then
         D("plugin_tick() got stepStamp %1, expected %2, another thread running, so exiting...", stepStamp, runStamp)
         return
@@ -532,8 +531,8 @@ function plugin_tick( targ )
         baseX = now
         luup.variable_set( MYSID, "BaseTime", baseX, pdev )
     end
-    local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 1, nil ) -- no upper bound
-    if per <= 0 then return end -- simulator disabled
+    local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 0, nil ) -- no upper bound
+    if per == 0 then return end -- simulator disabled
     local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
     local nextDelay = freq -- a reasonable default that we may shorten
 
@@ -660,16 +659,21 @@ end
 -- Watch callback
 function plugin_watchCallback( dev, service, variable, oldValue, newValue )
     D("plugin_watchCallback(%1,%2,%3,%4,%5)", dev, service, variable, oldValue, newValue)
+    -- Ignore all non-changes
+    if oldValue == newValue then return end
+    
+    -- Child update?
     local key = (dev .. "/" .. service .. "/" .. variable):lower()
     if watchMap[key] then
         -- No child vs updates when disabled.
         if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
             return
         end
-        for _,d in ipairs( watchMap[key] ) do
+        for _,d in pairs( watchMap[key] ) do
             local success = pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
         end
     end
+    
     -- Also check and do these, in case someone makes a child that looks at us.
     -- We still have work to do, you know.
     if service == MYSID then
@@ -681,7 +685,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
             runStamp = os.time()
             plugin_scheduleTick( tonumber(newValue) or 1, runStamp, dev, "" )
         elseif variable == "Enabled" then
-            newValue = tonumber(newValue, 10) or 0
+            newValue = tonumber(newValue or 0) or 0
             if newValue == 0 then
                 -- Stopping
                 D("plugin_watchCallback() stopping timer loop")
@@ -702,12 +706,21 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
                 D("plugin_watchCallback() Enabled set, starting timing with new stamp %1", runStamp)
                 plugin_scheduleTick( 1, runStamp, dev, "" )
 
-                -- Update child sensors
+                -- Restart child sensors
                 for _,child in ipairs( getChildDevices( nil, dev ) or {} ) do
-                    luup.set_failure( 0, child )
-                    forceChildUpdate( child )
+                    pcall( startChild, child )
                 end
             end
+        elseif variable == "SourceVariable" then -- UI always writes SourceVariable, always writes it LAST.
+            -- Source changed for child. Restart child.
+            D("plugin_watchCallback() child %1 (#%2) source change (%3 %4->%5), restarting child",
+                luup.devices[dev].description, dev, variable, oldValue, newValue)
+            -- Remove child from watchMap
+            for _,a in pairs( watchMap or {} ) do
+                a[tostring(dev)] = nil
+            end
+            -- Restart child (re-adds to watchMap in correct key)
+            pcall( startChild, dev )
         end
     end
 end
@@ -755,10 +768,9 @@ function plugin_init(dev)
     -- Other inits here
     runStamp = os.time() -- any value we set is fine, really.
     luup.variable_watch( "virtualSensorWatchCallback", MYSID, nil, dev )
-    luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
+    -- luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
 
-    local children = getChildDevices( nil, dev )
-    for _,n in ipairs( children or {} ) do
+    for _,n in ipairs( getChildDevices( nil, dev ) or {} ) do
         pcall( startChild, n )
     end
 
@@ -820,7 +832,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
     end
 
     if action == "status" then
-        local json = require("json")
+        local json = require("dkjson")
         if json == nil then json = require("dkjson") end
         local st = {
             name=_PLUGIN_NAME,
@@ -878,6 +890,26 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
             end
         end
         return string.format("Done with %q for %d devices matching alias %q", action, nDev, alias), "text/plain"
+    elseif action == "getvtypes" then
+        local json = require("dkjson")
+        local r = {}
+        if isOpenLuup then
+            -- For openLuup, only show device types for resources that are installed
+            local loader = require "openLuup.loader"
+            if loader.find_file ~= nil then
+                for k,v in pairs( dfMap ) do
+                    if loader.find_file( v.device_file ) then 
+                        r[k] = v
+                    end
+                end
+            else
+                L{level=1,msg="PLEASE UPGRADE YOUR OPENLUUP TO 181122 OR HIGHER FOR FULL SUPPORT OF SITESENSOR VIRTUAL DEVICES"}
+            end
+        else
+            r = dfMap
+        end
+        return json.encode( r ), "application/json"
+                
     else
         return string.format("Action %q not implemented", action), "text/plain"
     end

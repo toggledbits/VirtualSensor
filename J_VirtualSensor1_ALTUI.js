@@ -1,4 +1,6 @@
 //# sourceURL=J_VirtualSensor1_ALTUI.js
+/* globals window,MultiBox,ALTUI_PluginDisplays,_T */
+
 "use strict";
 
 var VirtualSensor_ALTUI = ( function( window, undefined ) {
