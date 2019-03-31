@@ -5,6 +5,10 @@ It also creates standalone sensors of the available types (temperature, humidity
 light, generic, and security) and can set the sensor value to that of any variable
 on any other device (and keep it up-to-date).
 
+## Questions and Support
+
+Support for this plugin is offered through the (Vera community forums)[https://community.getvera.com/t/plugin-virtual-sensor/198699/1].
+
 ## Virtual Sensors ##
 
 Virtual Sensor's control panel allows you to create any number of virtual sensors,
@@ -14,7 +18,13 @@ a variable, but not create a child device for that variable to use as a trigger
 in scenes, Reactor, etc.
 
 Source data for each virtual sensor created is set on the "Virtual Sensors" tab
-of the Virtual Sensor device.
+of the Virtual Sensor parent device.
+
+openLuup users will need to install device and service files for the various 
+sensor types for them to be available in Virtual Sensor. This is because openLuup
+does not include Vera's full suite of default, known devices. It is a simple 
+matter to copy the device file and service file(s) from your Vera's `/etc/cmh-lu`
+directory to your openLuup installation directory.
 
 ## Simulator ##
 
