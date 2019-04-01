@@ -7,9 +7,9 @@
 
 module("L_VirtualSensor1", package.seeall)
 
-local _PLUGIN_ID = 9031
+local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.6"
+local _PLUGIN_VERSION = "1.7develop-19091"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 010202
 
@@ -75,7 +75,7 @@ local function dump(t)
     return str
 end
 
-local function L(msg, ...)
+local function L(msg, ...) -- luacheck: ignore 212
     local str
     local level = 50
     if type(msg) == "table" then
@@ -178,14 +178,6 @@ local function getChildDevices( typ, parent, filter )
         end
     end
     return res
-end
-
-local function findChildById( childId, parent )
-    assert(parent ~= nil)
-    for k,v in pairs(luup.devices) do
-        if v.device_num_parent == parent and v.id == childId then return k,v end
-    end
-    return false
 end
 
 local function prepForNewChildren( existingChildren, dev )
@@ -369,10 +361,11 @@ local function startChild( dev )
     else
         -- Add to watch map.
         local key = (dn .. "/" .. service .. "/" .. variable):lower()
-        watchMap[key] = watchMap[key] or {}
+        if watchMap[key] == nil then
+            luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
+        end
         if not watchMap[key][tostring(dev)] then
             watchMap[key][tostring(dev)] = dev
-            luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
         end
 
         -- Get value right now and set if changed.
@@ -670,7 +663,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
             return
         end
         for _,d in pairs( watchMap[key] ) do
-            local success = pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
+            pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
         end
     end
     
@@ -787,7 +780,7 @@ function plugin_getVersion()
     return _PLUGIN_VERSION, _PLUGIN_NAME, _CONFIGVERSION
 end
 
-local function getDevice( dev, pdev, v )
+local function getDevice( dev, pdev, v ) -- luacheck: ignore 212
     if v == nil then v = luup.devices[dev] end
     local json = require("json")
     if json == nil then json = require("dkjson") end
