@@ -532,8 +532,17 @@ function plugin_tick( targ )
 		baseX = now
 		luup.variable_set( MYSID, "BaseTime", baseX, pdev )
 	end
+
 	local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 0, nil ) -- no upper bound
-	if per == 0 then return end -- simulator disabled
+	if per == 0 then 
+		-- Period is 0, do not run simulator.
+		luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", pdev )
+		luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", "", pdev )
+		luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", "", pdev )
+		luup.variable_set( "urn:micasaverde-com:serviceId:LightSensor1", "CurrentLevel", "", pdev )
+		return
+	end
+
 	local freq = constrain( getVarNumeric( "Interval", 5, pdev, MYSID ), 1, per )
 	local nextDelay = freq -- a reasonable default that we may shorten
 
@@ -895,6 +904,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 			end
 		end
 		return string.format("Done with %q for %d devices matching alias %q", action, nDev, alias), "text/plain"
+
 	elseif action == "getvtypes" then
 		local json = require("dkjson")
 		local r = {}
