@@ -92,6 +92,17 @@
 		</action>
 		<action>
 			<serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
+			<name>SetSensorName</name>
+			<run>
+				-- Set sensor name without forcing a Luup reload.
+				local dev = tonumber( lul_settings.DeviceNum ) or -1
+				if "" ~= ( lul_settings.NewName or "" ) and dev &gt; 0 then
+					luup.attr_set( 'name', lul_settings.NewName, dev )
+				end
+			</run>
+		</action>
+		<action>
+			<serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
 			<name>SetDebug</name>
 			<run>
 				VirtualSensor.actionSetDebug( lul_device, lul_settings.debug )

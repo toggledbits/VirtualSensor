@@ -18,7 +18,7 @@ var VirtualSensor = (function(api) {
 	var myModule = {};
 
 	function footer() {
-		return '<hr><p>&copy; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/projects" target="_blank">https://toggledbits.com/projects</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.toggledbits.com/donate" target="_blank">a small donation</a>. I am grateful for any support you choose to give!</p>';
+		return '<hr><p>&copy; 2017,2018,2019 Patrick H. Rigney, All Rights Reserved. <a href="https://toggledbits.com/virtualsensor" target="_blank">https://toggledbits.com/virtualsensor</a></p><p><b>Find VirtualSensor useful?</b> Please consider supporting the project with <a href="https://www.toggledbits.com/donate" target="_blank">a small donation</a>. I am grateful for any support you choose to give!</p>';
 	}
 
 	function updateMessage( dev ) {
@@ -303,7 +303,7 @@ var VirtualSensor = (function(api) {
 	function handleVariableChange( ev ) {
 		var el = jQuery( ev.currentTarget );
 		var row = el.closest( 'div.row' );
-		var vsdevice = parseInt( row.attr( 'id' ) );
+		var vsdevice = parseInt( row.attr( 'id' ).replace( /^d/, "" ) );
 		var device = parseInt( jQuery( 'select.devicemenu', row ).val() );
 		var vs = el.val();
 		var variable = vs.replace( /^[^\/]+\//, "" );
@@ -389,6 +389,27 @@ var VirtualSensor = (function(api) {
 		}
 	}
 
+	function handleNameClick( ev ) {
+		var $el = jQuery( ev.currentTarget );
+		var id = $el.closest( 'div.row' ).attr( 'id' ).replace( /^d/, "" );
+		var dev = parseInt( id );
+		if ( isNaN( dev ) ) return;
+		var devobj = api.getDeviceObject( dev );
+		if ( devobj ) {
+			var txt = devobj.name;
+			while ( true ) {
+				txt = prompt( 'Enter new switch name:', txt );
+				if ( txt == null ) break;
+				if ( txt.match( /^.+$/ ) ) {
+					/* This causes a Luup reload, so don't do it this way. We have our own way. */
+					/* api.setDeviceProperty( dev, 'name', txt, { persistent: true } ); */
+					api.performActionOnDevice( devobj.id_parent, serviceId, "SetSensorName", { actionArguments: { DeviceNum: dev, NewName: txt } });
+					$el.text( txt );
+					break;
+				}
+			}
+		}
+	}
 	function redrawChildren() {
 		var myDevice = api.getCpanelDeviceId();
 		var devices = api.cloneObject( api.getListOfDevices() );
@@ -417,7 +438,7 @@ var VirtualSensor = (function(api) {
 			var v = devices[ix];
 			if ( v.id_parent == myDevice ) {
 				row = jQuery( '<div class="row" />' );
-				row.attr( 'id', v.id );
+				row.attr( 'id', "d" + String(v.id) );
 
 				var col = jQuery( '<div class="col-xs-12 col-sm-6 col-lg-3 vsname" />' );
 				row.append( col.text( v.name + ' (#' + v.id + ')' ) );
@@ -442,6 +463,8 @@ var VirtualSensor = (function(api) {
 				dm.on( 'change.vsensor', handleVariableChange );
 
 				row.append( col );
+
+				jQuery( 'div.vsname', row ).on( 'click.vsensor', handleNameClick );
 
 				container.append( row );
 				++count;
