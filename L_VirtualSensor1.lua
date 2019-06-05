@@ -9,9 +9,9 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.8"
+local _PLUGIN_VERSION = "1.9develop-19156"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
-local _CONFIGVERSION = 010202
+local _CONFIGVERSION = 19148
 
 local debugMode = false
 
@@ -142,16 +142,33 @@ local function split( str, sep )
 	return arr, #arr
 end
 
--- Lua has no ternary op, so fake one
-local function iif( b, t, f )
-	if b then return t end
-	return f
+-- Add watch if not already present (keeps watchMap)
+local function addWatch( dev, svc, var, pdev )
+	D("addWatch(%1,%2,%3,%4)", dev, svc, var, pdev)
+	local key = (dev .. "/" .. svc .. "/" .. var):lower()
+	if watchMap[key] == nil then
+		watchMap[key] = {}
+		luup.variable_watch( "virtualSensorWatchCallback", svc, var, dev )
+		D("addWatch() registered system watch for %1", key)
+	end
+	if not watchMap[key][tostring(pdev)] then
+		D("addWatch() %1 (self) subscribing to %2", pdev, key)
+		watchMap[key][tostring(pdev)] = pdev
+	end
+end
+
+local function removeWatch( dev, svc, var, pdev )
+	D("addWatch(%1,%2,%3,%4)", dev, svc, var, pdev)
+	local key = (dev .. "/" .. svc .. "/" .. var):lower()
+	if watchMap[key] then
+		watchMap[key][tostring(pdev)] = nil
+	end
 end
 
 -- Set or reset the current tripped state
 local function trip( flag, pdev )
 	D("trip(%1,%2)", flag, pdev)
-	local val = iif( flag, 1, 0 )
+	local val = flag and 1 or 0
 	local currTrip = getVarNumeric( "Tripped", 0, pdev, SECURITYSID )
 	if currTrip ~= val then
 		luup.variable_set( SECURITYSID, "Tripped", val, pdev )
@@ -364,17 +381,8 @@ local function startChild( dev )
 			luup.devices[dev].description, dev, luup.devices[pluginDevice].description, pluginDevice)
 		luup.set_failure( 1, dev )
 	else
-		-- Add to watch map.
-		local key = (dn .. "/" .. service .. "/" .. variable):lower()
-		if watchMap[key] == nil then
-			watchMap[key] = {}
-			luup.variable_watch( "virtualSensorWatchCallback", service, variable, dn )
-			D("startChild() registered system watch for %1", key)
-		end
-		if not watchMap[key][tostring(dev)] then
-			D("startChild() %1 (self) subscribing to %2", dev, key)
-			watchMap[key][tostring(dev)] = dev
-		end
+		-- Add source state variable to watch map.
+		addWatch( dn, service, variable, dev )
 
 		-- Get value right now and set if changed.
 		forceChildUpdate( dev )
@@ -384,13 +392,42 @@ local function startChild( dev )
 	end
 end
 
+local function coalesce( a, b )
+	return ("" ~= (a or "")) and a or b
+end
+
 -- Watched variable for child has changed. Set new value on child.
 local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 	D("childWatchCallback(%1,%2,%3,%4,%5,%6)", dev, svc, var, oldVal, newVal, child)
 	assert( luup.devices[child] )
-	local df = dfMap[ luup.devices[child].device_type ]
-	assert(df, "Device map entry not found for "..tostring(luup.devices[child].device_type))
-	luup.variable_set( df.service, df.variable, newVal, child )
+	if svc == MYSID and var == "SourceVariable" then
+		-- Source change; restart child.
+		L("Restarting %1 (#%2) -- source changed", (luup.devices[dev] or {}).description, dev)
+		startChild( dev )
+	else
+		-- Copy source variable value
+		local sd = tonumber( luup.variable_get( MYSID, "SourceDevice", child ) or -1 ) or -1
+		local ss = luup.variable_get( MYSID, "SourceServiceId", child ) or ""
+		local sv = luup.variable_get( MYSID, "SourceVariable", child ) or ""
+		D("childWatchCallback() update source? %1.%2/%3 changed, current source is %4.%5/%6", 
+			dev, svc, var, sd, ss, sv)
+		if dev == sd and svc == ss and var == sv then
+			-- Only copy if it's the current configured source.
+			local df = dfMap[ luup.devices[child].device_type ]
+			local ts = coalesce( (luup.variable_get( MYSID, "TargetServiceId", child )), (df or {}).service ) or ""
+			local tv = coalesce( (luup.variable_get( MYSID, "TargetVariable", child )), (df or {}).variable ) or ""
+			if ts ~= "" and tv ~= "" then
+				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
+				luup.variable_set( ts, tv, newVal, child )
+			else
+				L({level=1,msg="Failed to store value on %1 (#%2), target invalid"},
+					luup.devices[child].description, child, ts, tv)
+				luup.set_failure( 1, child )
+				removeWatch( dev, svc, var, child )
+			end
+		end
+		-- Note we silently ignore watch calls for old (non-current) source
+	end
 end
 
 --[[   P L U G I N   C O R E   F U N C T I O N S   ]]
@@ -418,10 +455,10 @@ local function plugin_runOnce(dev)
 	if (rev == 0) then
 		-- Initialize for entirely new instance
 		D("runOnce() Performing first-time initialization!")
-		luup.variable_set( MYSID, "Enabled", 0, dev )
+		luup.variable_set( MYSID, "Enabled", 1, dev )
 		luup.variable_set( MYSID, "DebugMode", 0, dev )
 		luup.variable_set( MYSID, "Interval", 60, dev )
-		luup.variable_set( MYSID, "Period", 1800, dev )
+		luup.variable_set( MYSID, "Period", 0, dev )
 		luup.variable_set( MYSID, "Amplitude", 1, dev )
 		luup.variable_set( MYSID, "Midline", 0, dev )
 		luup.variable_set( MYSID, "DutyCycle", 50, dev )
@@ -444,7 +481,7 @@ local function plugin_runOnce(dev)
 		luup.variable_set( "urn:micasaverde-com:serviceId:HaDevice1", "ModeSetting", "1:;2:;3:;4:", dev )
 
 		luup.attr_set( "category_num", 4, dev )
-		luup.attr_set( "subcategory_num", "", dev )
+		luup.attr_set( "subcategory_num", 1, dev )
 
 		luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
 		return -- this branch must return
@@ -472,7 +509,7 @@ local function plugin_runOnce(dev)
 	if rev < 010200 then
 		D("runOnce() updating config for rev 010200")
 		luup.attr_set( "category_num", 4, dev )
-		luup.attr_set( "subcategory_num", "", dev )
+		luup.attr_set( "subcategory_num", 1, dev )
 	end
 	if rev < 010201 then
 		D("runOnce() updating config for rev 010201")
@@ -534,7 +571,7 @@ function plugin_tick( targ )
 	end
 
 	local per = constrain( getVarNumeric( "Period", 300, pdev, MYSID ), 0, nil ) -- no upper bound
-	if per == 0 then 
+	if per == 0 then
 		-- Period is 0, do not run simulator.
 		luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", "", pdev )
 		luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", "", pdev )
@@ -675,7 +712,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
 	-- Child update?
 	local key = (dev .. "/" .. service .. "/" .. variable):lower()
 	if watchMap[key] then
-		-- No child vs updates when disabled.
+		-- No child updates when disabled.
 		if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
 			return
 		end
@@ -721,16 +758,6 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
 					pcall( startChild, child )
 				end
 			end
-		elseif variable == "SourceVariable" then -- UI always writes SourceVariable, always writes it LAST.
-			-- Source changed for child. Restart child.
-			D("plugin_watchCallback() child %1 (#%2) source change (%3 %4->%5), restarting child",
-				luup.devices[dev].description, dev, variable, oldValue, newValue)
-			-- Remove child from watchMap
-			for _,a in pairs( watchMap or {} ) do
-				a[tostring(dev)] = nil
-			end
-			-- Restart child (re-adds to watchMap in correct key)
-			pcall( startChild, dev )
 		end
 	end
 end
@@ -781,6 +808,7 @@ function plugin_init(dev)
 	-- luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
 
 	for _,n in ipairs( getChildDevices( nil, dev ) or {} ) do
+		addWatch( n, MYSID, "SourceVariable", dev )
 		local success, err = pcall( startChild, n )
 		if not success then
 			L({level=1,msg="Failed to start child %1 (#%2): %3"}, luup.devices[n].description, n, err)
