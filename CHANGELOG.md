@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 1.9 (development)
+## Version 1.9 (released)
 
 * Allow quick sensor name change by clicking on it in Virtual Sensors tab (models Switchboard).
 * Do a (much) better job of making a virtual sensor react to configuration changes. No Luup reloads should be necessary at this point.
