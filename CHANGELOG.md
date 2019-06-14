@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.10 (development)
+
+* Allow no device selection, meaning sensor can be updated externally (e.g. Lua, Reactor, scenes, etc.) without interference from VirtualSensor.
+* Track previous value and time last updated; display on Virtual Sensors tab.
+
 ## Version 1.9 (released)
 
 * Allow quick sensor name change by clicking on it in Virtual Sensors tab (models Switchboard).

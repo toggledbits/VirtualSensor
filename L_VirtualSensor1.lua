@@ -142,6 +142,10 @@ local function split( str, sep )
 	return arr, #arr
 end
 
+local function coalesce( a, b )
+	return ("" ~= (a or "")) and a or b
+end
+
 -- Add watch if not already present (keeps watchMap)
 local function addWatch( dev, svc, var, pdev )
 	D("addWatch(%1,%2,%3,%4)", dev, svc, var, pdev)
@@ -329,11 +333,13 @@ local function forceChildUpdate( child )
 		local svc = luup.variable_get( MYSID, "SourceServiceId", child ) or "X"
 		local var = luup.variable_get( MYSID, "SourceVariable", child ) or "X"
 		local val = luup.variable_get( svc, var, dev ) or ""
-		local oldval = luup.variable_get( df.service, df.variable, child ) or ""
-		D("forceChildUpdate(%1) %2.%3/%4=%5, was %6", child, dev, svc, var, val, oldval)
+		local ts = coalesce( (luup.variable_get( MYSID, "TargetServiceId", child )), (df or {}).service ) or ""
+		local tv = coalesce( (luup.variable_get( MYSID, "TargetVariable", child )), (df or {}).variable ) or ""
+		local oldval = luup.variable_get( ts, tv, child ) or ""
 		if val ~= oldval then
-			D("forceChildUpdate() sending %1 to my %2/%3", val, df.service, df.variable)
-			luup.variable_set( df.service, df.variable, val, child )
+			luup.variable_set( ts, tv, val, child )
+			luup.variable_set( MYSID, "PreviousValue", oldval, child )
+			luup.variable_set( MYSID, "LastUpdate", os.time(), child )
 		end
 	else
 		L({level=2,msg="Can't update child virtual sensor %1 (#%2): source device %3 no longer exists!"},
@@ -350,6 +356,13 @@ local function startChild( dev )
 	initChild( dev )
 
 	local device = luup.variable_get( MYSID, "SourceDevice", dev ) or ""
+	if device == "" then
+		-- No copy. Just clear error state and return.
+		luup.set_failure( 0, dev )
+		return
+	end
+
+	-- Find device
 	local dn = tonumber(device)
 	if dn == nil then
 		device = device:lower()
@@ -392,10 +405,6 @@ local function startChild( dev )
 	end
 end
 
-local function coalesce( a, b )
-	return ("" ~= (a or "")) and a or b
-end
-
 -- Watched variable for child has changed. Set new value on child.
 local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 	D("childWatchCallback(%1,%2,%3,%4,%5,%6)", dev, svc, var, oldVal, newVal, child)
@@ -409,7 +418,7 @@ local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 		local sd = tonumber( luup.variable_get( MYSID, "SourceDevice", child ) or -1 ) or -1
 		local ss = luup.variable_get( MYSID, "SourceServiceId", child ) or ""
 		local sv = luup.variable_get( MYSID, "SourceVariable", child ) or ""
-		D("childWatchCallback() update source? %1.%2/%3 changed, current source is %4.%5/%6", 
+		D("childWatchCallback() update source? %1.%2/%3 changed, current source is %4.%5/%6",
 			dev, svc, var, sd, ss, sv)
 		if dev == sd and svc == ss and var == sv then
 			-- Only copy if it's the current configured source.
@@ -419,6 +428,8 @@ local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 			if ts ~= "" and tv ~= "" then
 				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
 				luup.variable_set( ts, tv, newVal, child )
+				luup.variable_set( MYSID, "PreviousValue", oldVal, child )
+				luup.variable_set( MYSID, "LastUpdate", os.time(), child )
 			else
 				L({level=1,msg="Failed to store value on %1 (#%2), target invalid"},
 					luup.devices[child].description, child, ts, tv)
