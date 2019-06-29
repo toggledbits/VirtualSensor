@@ -2,6 +2,7 @@
 
 ## Version 1.10 (development)
 
+* Add motion and smoke sensor subtypes of binary sensor.
 * Allow no device selection, meaning sensor can be updated externally (e.g. Lua, Reactor, scenes, etc.) without interference from VirtualSensor.
 * Track previous value and time last updated; display on Virtual Sensors tab.
 

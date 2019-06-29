@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.10develop-19165"
+local _PLUGIN_VERSION = "1.10develop-19179"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 
@@ -31,6 +31,10 @@ local watchMap = {}
 local dfMap = {
 	  ["urn:schemas-micasaverde-com:device:DoorSensor:1"] =
 			{ device_file="D_DoorSensor1.xml", category=4, subcategory=1, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped", name="Door/Security (binary)" }
+	, ["urn:schemas-micasaverde-com:device:MotionSensor:1"] =
+			{ device_file="D_MotionSensor1.xml", category=4, subcategory=3, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped", name="Motion/Security (binary)" }
+	, ["urn:schemas-micasaverde-com:device:SmokeSensor:1"] =
+			{ device_file="D_SmokeSensor1.xml", category=4, subcategory=4, service="urn:micasaverde-com:serviceId:SecuritySensor1", variable="Tripped", name="Smoke/Security (binary)" }
 	, ["urn:schemas-micasaverde-com:device:TemperatureSensor:1"] =
 			{ device_file="D_TemperatureSensor1.xml", category=17, service="urn:upnp-org:serviceId:TemperatureSensor1", variable="CurrentTemperature", name="Temperature" }
 	, ["urn:schemas-micasaverde-com:device:HumiditySensor:1"] =
