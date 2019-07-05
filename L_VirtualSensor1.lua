@@ -430,6 +430,13 @@ local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 			local ts = coalesce( (luup.variable_get( MYSID, "TargetServiceId", child )), (df or {}).service ) or ""
 			local tv = coalesce( (luup.variable_get( MYSID, "TargetVariable", child )), (df or {}).variable ) or ""
 			if ts ~= "" and tv ~= "" then
+				-- Special case for binary sensor: allow match to source value to determine Tripped value
+				if ts == SECURITYSID and tv == "Tripped" then
+					local m = luup.variable_get( MYSID, "MatchValue", child ) or ""
+					if "" ~= m then
+						newVal = newVal:match( m ) and "1" or "0"
+					end
+				end
 				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
 				luup.variable_set( ts, tv, newVal, child )
 				luup.variable_set( MYSID, "PreviousValue", oldVal, child )
