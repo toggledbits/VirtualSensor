@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.10develop-19179"
+local _PLUGIN_VERSION = "1.10develop-19186"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 
@@ -165,11 +165,10 @@ local function addWatch( dev, svc, var, pdev )
 	end
 end
 
-local function removeWatch( dev, svc, var, pdev )
-	D("addWatch(%1,%2,%3,%4)", dev, svc, var, pdev)
-	local key = (dev .. "/" .. svc .. "/" .. var):lower()
-	if watchMap[key] then
-		watchMap[key][tostring(pdev)] = nil
+local function removeWatch( pdev )
+	D("removeWatch(%1)", pdev)
+	for k in pairs( watchMap ) do
+		watchMap[k][tostring(pdev)] = nil
 	end
 end
 
@@ -309,6 +308,12 @@ local function initChild( dev )
 
 		local df = dfMap[ luup.devices[dev].device_type ]
 		if df then
+			luup.variable_set( df.service, df.variable, "", dev )
+			if df.service == "urn:micasaverde-com:serviceId:SecuritySensor1" and df.variable == "Tripped" then
+				luup.variable_set( MYSID, "MatchString", "", dev )
+				luup.variable_set( MYSID, "MatchPattern", "0", dev )
+				luup.variable_set( MYSID, "MatchCase", "0", dev )
+			end
 			if df.category ~= nil then
 				luup.attr_set( "category_num", df.category, dev )
 				if df.subcategory ~= nil then
@@ -327,27 +332,64 @@ local function initChild( dev )
 end
 
 -- Update child virtual sensor.
-local function forceChildUpdate( child )
-	D("forceChildUpdate(%1)", child)
+local function doChildUpdate( force, child )
+	D("doChildUpdate(%1,%2)", force, child)
 	assert( luup.devices[child] )
-	local df = dfMap[ luup.devices[child].device_type ]
-	assert(df, "Device map entry not found for "..tostring(luup.devices[child].device_type))
-	local dev = getVarNumeric( "SourceDevice", -1, child, MYSID )
-	if luup.devices[dev] then
-		local svc = luup.variable_get( MYSID, "SourceServiceId", child ) or "X"
-		local var = luup.variable_get( MYSID, "SourceVariable", child ) or "X"
-		local val = luup.variable_get( svc, var, dev ) or ""
+	local sd = tonumber( luup.variable_get( MYSID, "SourceDevice", child ) or -1 ) or -1
+	if luup.devices[sd] then
+		-- Copy source variable value
+		local ss = luup.variable_get( MYSID, "SourceServiceId", child ) or ""
+		local sv = luup.variable_get( MYSID, "SourceVariable", child ) or ""
+		D("doChildUpdate() current source is %1.%2/%3", sd, ss, sv )
+		if ss == "" or sv == "" then
+			-- Unconfigured; remove watches for this child (quietly)
+			removeWatch( child )
+			return
+		end
+		-- Only copy if it's the current configured source.
+		local df = dfMap[ luup.devices[child].device_type ]
 		local ts = coalesce( (luup.variable_get( MYSID, "TargetServiceId", child )), (df or {}).service ) or ""
 		local tv = coalesce( (luup.variable_get( MYSID, "TargetVariable", child )), (df or {}).variable ) or ""
-		local oldval = luup.variable_get( ts, tv, child ) or ""
-		if val ~= oldval then
-			luup.variable_set( ts, tv, val, child )
-			luup.variable_set( MYSID, "PreviousValue", oldval, child )
-			luup.variable_set( MYSID, "LastUpdate", os.time(), child )
+		if ts ~= "" and tv ~= "" then
+			local newVal = luup.variable_get( ss, sv, sd ) or ""
+			local oldVal = luup.variable_get( MYSID, "RawValue", child ) -- nil OK
+			if force or newVal ~= oldVal then
+				luup.variable_set( MYSID, "PreviousRawValue", oldVal or "", child )
+				luup.variable_set( MYSID, "RawValue", newVal, child )
+				-- Special case for binary sensor: allow match to source value to determine Tripped value
+				if ts == SECURITYSID and tv == "Tripped" then
+					local m = luup.variable_get( MYSID, "MatchString", child ) or ""
+					if "" ~= m then
+						local isPattern = getVarNumeric( "MatchPattern", 0, child, MYSID ) ~= 0
+						if getVarNumeric( "MatchCase", 0, child, MYSID ) == 0 then
+							newVal = string.lower( newVal )
+							if not isPattern then -- don't lcase patterns, because %s not same as %S
+								m = string.lower( m )
+							end
+						end
+						-- Escape pattern symbols for plain string match, prepend start pattern restriction.
+						if not isPattern then
+							m = "^" .. m:gsub( '[%^%$%*%+%-%?%%%%[%]%(%)]', '%%%1' )
+						end
+						D("childWatchCallback() match string %1 to %2", newVal, m )
+						oldVal = luup.variable_get( ts, tv, child ) or "" -- override
+						newVal = newVal:match( m ) and "1" or "0"
+					end
+				end
+				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
+				luup.variable_set( ts, tv, newVal, child )
+				luup.variable_set( MYSID, "PreviousValue", oldVal, child )
+				luup.variable_set( MYSID, "LastUpdate", os.time(), child )
+			end
+		else
+			L({level=1,msg="Failed to store value on %1 (#%2), target %3/%4 invalid (from %5)"},
+				luup.devices[child].description, child, ts, tv, luup.devices[child].device_type)
+			luup.set_failure( 1, child )
+			removeWatch( child )
 		end
 	else
 		L({level=2,msg="Can't update child virtual sensor %1 (#%2): source device %3 no longer exists!"},
-			luup.devices[child].description, child, dev)
+			luup.devices[child].description, child, sd)
 	end
 end
 
@@ -358,6 +400,9 @@ local function startChild( dev )
 	assert( df ~= nil, "Unsupported device type for child" )
 
 	initChild( dev )
+
+	-- Remove all existing watches for this child
+	removeWatch( dev )
 
 	local device = luup.variable_get( MYSID, "SourceDevice", dev ) or ""
 	if device == "" then
@@ -402,7 +447,7 @@ local function startChild( dev )
 		addWatch( dn, service, variable, dev )
 
 		-- Get value right now and set if changed.
-		forceChildUpdate( dev )
+		doChildUpdate( true, dev )
 
 		-- Soup is on, baby!
 		luup.set_failure( 0, dev )
@@ -413,43 +458,7 @@ end
 local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
 	D("childWatchCallback(%1,%2,%3,%4,%5,%6)", dev, svc, var, oldVal, newVal, child)
 	assert( luup.devices[child] )
-	if svc == MYSID and var == "SourceVariable" then
-		-- Source change; restart child.
-		L("Restarting %1 (#%2) -- source changed", (luup.devices[dev] or {}).description, dev)
-		startChild( dev )
-	else
-		-- Copy source variable value
-		local sd = tonumber( luup.variable_get( MYSID, "SourceDevice", child ) or -1 ) or -1
-		local ss = luup.variable_get( MYSID, "SourceServiceId", child ) or ""
-		local sv = luup.variable_get( MYSID, "SourceVariable", child ) or ""
-		D("childWatchCallback() update source? %1.%2/%3 changed, current source is %4.%5/%6",
-			dev, svc, var, sd, ss, sv)
-		if dev == sd and svc == ss and var == sv then
-			-- Only copy if it's the current configured source.
-			local df = dfMap[ luup.devices[child].device_type ]
-			local ts = coalesce( (luup.variable_get( MYSID, "TargetServiceId", child )), (df or {}).service ) or ""
-			local tv = coalesce( (luup.variable_get( MYSID, "TargetVariable", child )), (df or {}).variable ) or ""
-			if ts ~= "" and tv ~= "" then
-				-- Special case for binary sensor: allow match to source value to determine Tripped value
-				if ts == SECURITYSID and tv == "Tripped" then
-					local m = luup.variable_get( MYSID, "MatchValue", child ) or ""
-					if "" ~= m then
-						newVal = newVal:match( m ) and "1" or "0"
-					end
-				end
-				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
-				luup.variable_set( ts, tv, newVal, child )
-				luup.variable_set( MYSID, "PreviousValue", oldVal, child )
-				luup.variable_set( MYSID, "LastUpdate", os.time(), child )
-			else
-				L({level=1,msg="Failed to store value on %1 (#%2), target invalid"},
-					luup.devices[child].description, child, ts, tv)
-				luup.set_failure( 1, child )
-				removeWatch( dev, svc, var, child )
-			end
-		end
-		-- Note we silently ignore watch calls for old (non-current) source
-	end
+	doChildUpdate( false, child )
 end
 
 --[[   P L U G I N   C O R E   F U N C T I O N S   ]]
@@ -830,7 +839,6 @@ function plugin_init(dev)
 	-- luup.variable_watch( "virtualSensorWatchCallback", SECURITYSID, nil, dev )
 
 	for _,n in ipairs( getChildDevices( nil, dev ) or {} ) do
-		addWatch( n, MYSID, "SourceVariable", dev )
 		local success, err = pcall( startChild, n )
 		if not success then
 			L({level=1,msg="Failed to start child %1 (#%2): %3"}, luup.devices[n].description, n, err)
@@ -922,6 +930,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 			end
 		end
 		return json.encode( st ), "application/json"
+
 	elseif string.find("trip reset arm disarm setvalue", action) then
 		local alias = lul_parameters['alias'] or ""
 		local parm = {}
@@ -974,6 +983,15 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 			r = dfMap
 		end
 		return json.encode( r ), "application/json"
+
+	elseif action == "restart" then
+
+		if luup.devices[deviceNum] and luup.devices[deviceNum].device_num_parent == pluginDevice then
+			startChild( deviceNum )
+			doChildUpdate( true, deviceNum )
+			return '{"status":true}', "application/json"
+		end
+		return "ERROR invalid device", "text/plain"
 
 	else
 		return string.format("Action %q not implemented", action), "text/plain"

@@ -2,6 +2,8 @@
 
 ## Version 1.10 (development)
 
+* Allow match string for binary sensors--rather than simply copy value, compare to match string and set Tripped=0/1 according to match state.
+* Improve response to all config changes with Luup reload requirement.
 * Add motion and smoke sensor subtypes of binary sensor.
 * Allow no device selection, meaning sensor can be updated externally (e.g. Lua, Reactor, scenes, etc.) without interference from VirtualSensor.
 * Track previous value and time last updated; display on Virtual Sensors tab.
