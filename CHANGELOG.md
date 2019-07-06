@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 1.10 (development)
+## Version 1.10 (released)
 
 * Allow match string for binary sensors--rather than simply copy value, compare to match string and set Tripped=0/1 according to match state.
 * Improve response to all config changes with Luup reload requirement.

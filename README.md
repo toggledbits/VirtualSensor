@@ -7,7 +7,7 @@ on any other device (and keep it up-to-date).
 
 ## Questions and Support
 
-Support for this plugin is offered through the (Vera community forums)[https://community.getvera.com/t/plugin-virtual-sensor/198699/1].
+Support for this plugin is offered through the (Vera Community)[https://community.getvera.com/t/plugin-virtual-sensor/198699/1].
 
 ## Virtual Sensors ##
 
@@ -18,13 +18,23 @@ a variable, but not create a child device for that variable to use as a trigger
 in scenes, Reactor, etc.
 
 Source data for each virtual sensor created is set on the "Virtual Sensors" tab
-of the Virtual Sensor parent device.
+of the Virtual Sensor parent device. New virtual sensors can also be created
+directly here. This view also provides a display of the current and prior values
+copied from the source device, and the timestamp at which the last change occurred.
 
-openLuup users will need to install device and service files for the various 
+**openLuup:** openLuup users will need to install device and service files for the various 
 sensor types for them to be available in Virtual Sensor. This is because openLuup
-does not include Vera's full suite of default, known devices. It is a simple 
-matter to copy the device file and service file(s) from your Vera's `/etc/cmh-lu`
-directory to your openLuup installation directory.
+does not include Vera's full suite of default, known device type definitions. 
+It is a simple matter to copy the device file and service file(s) from your
+Vera's `/etc/cmh-lu` directory to your openLuup installation directory.
+
+Binary virtual sensors can either copy the value of the source device directly 
+(the default behavior), or match the value to a specified string. When matching,
+the binary sensor will have its `Tripped` state variable set to "1" if the string
+matches, or `false` otherwise. The match string provided is a simple string, and
+the match is not case sensitive by default. Advanced users may set the `MatchPattern`
+state variable to "1" to have the match string used as a Lua pattern. The state
+variable `MatchCase` can be set to "1" to make a match case-sensitive.
 
 ## Simulator ##
 
@@ -32,7 +42,7 @@ The Simulator function of Virtual Sensor generates values using a sinusoidal for
 the parameters of which you can control.
 
 In *disabled* state, VirtualSensor is static and will change only when acted
-upon by the UI buttons, scenes, Lua, PLEG, API requests, etc.
+upon by the UI buttons, scenes, Reactor, Lua, API requests, etc.
 
 In its *enabled* state, VirtualSensor automatically changes its values
 according to the configuration of its free-running function generator.

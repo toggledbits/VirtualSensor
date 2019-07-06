@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.10develop-19186"
+local _PLUGIN_VERSION = "1.10"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 
@@ -758,6 +758,8 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
 		if variable == "Period" then
 			D("plugin_watchCallback() Period changed, resetting BaseTime")
 			luup.variable_set( MYSID, "BaseTime", os.time(), dev )
+			runStamp = os.time()
+			plugin_scheduleTick( 1, runStamp, dev, "" )
 		elseif variable == "Interval" then
 			D("plugin_watchCallback() Interval changed, starting new timer thread")
 			runStamp = os.time()
