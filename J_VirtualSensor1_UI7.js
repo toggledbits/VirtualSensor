@@ -12,6 +12,8 @@ var VirtualSensor = (function(api) {
 
 	// unique identifier for this plugin...
 	var uuid = '7ed70018-0e76-11e8-a584-74d4351650de';
+	
+	var pluginVersion = "1.11develop-19304"
 
 	var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 

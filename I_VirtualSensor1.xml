@@ -47,14 +47,6 @@
 			</run>
 		</action>
 		<action>
-			<serviceId>urn:micasaverde-com:serviceId:SecuritySensor1</serviceId>
-			<name>SetArmed</name>
-			<run>
-				VirtualSensor.actionSetArmed(lul_device, lul_settings.newArmedValue)
-				return true
-			</run>
-		</action>
-		<action>
 			<serviceId>urn:toggledbits-com:serviceId:VirtualSensor1</serviceId>
 			<name>Trip</name>
 			<run>
@@ -106,6 +98,17 @@
 			<name>SetDebug</name>
 			<run>
 				VirtualSensor.actionSetDebug( lul_device, lul_settings.debug )
+			</run>
+		</action>
+
+		<!--   D E V I C E   A C T I O N   I M P L E M E N T A T I O N   -->
+
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:SecuritySensor1</serviceId>
+			<name>SetArmed</name>
+			<run>
+				VirtualSensor.actionSetArmed(lul_device, lul_settings.newArmedValue)
+				return true
 			</run>
 		</action>
 	</actionList>

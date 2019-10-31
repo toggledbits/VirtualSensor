@@ -13,7 +13,7 @@
 		<manufacturerURL>http://www.toggledbits.com/sitesensor/</manufacturerURL>
 		<modelDescription>Virtual Sensor</modelDescription>
 		<modelName>Virtual Sensor</modelName>
-		<handleChildren>0</handleChildren>
+		<handleChildren>1</handleChildren>
 		<Category_Num>4</Category_Num>
 		<serviceList>
 		  <service>

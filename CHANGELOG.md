@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 1.11 (development)
+
+* `SetArmed` action was not correctly implemented (fixed).
+
 ## Version 1.10 (released)
 
 * Allow match string for binary sensors--rather than simply copy value, compare to match string and set Tripped=0/1 according to match state.

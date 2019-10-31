@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.10"
+local _PLUGIN_VERSION = "1.11develop-19304"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 
@@ -83,7 +83,7 @@ local function L(msg, ...) -- luacheck: ignore 212
 	local str
 	local level = 50
 	if type(msg) == "table" then
-		str = tostring(msg.prefix or _PLUGIN_NAME) .. ": " .. tostring(msg.msg)
+		str = tostring(msg.prefix or _PLUGIN_NAME) .. ": " .. tostring(msg.msg or msg[1])
 		level = msg.level or level
 	else
 		str = _PLUGIN_NAME .. ": " .. tostring(msg)
@@ -259,9 +259,8 @@ end
 
 function actionSetArmed( dev, newArmed )
 	D("actionSetArmed(%1,%2)", dev, newArmed)
-	newArmed = tonumber(newArmed,10) or 0
-	if newArmed ~= 0 then newArmed = 1 end
-	luup.variable_set( SECURITYSID, "Armed", newArmed, dev )
+	newArmed = ( tonumber(newArmed) or 0 ) ~= 0
+	luup.variable_set( SECURITYSID, "Armed", newArmed and 1 or 0, dev )
 end
 
 function actionTrip( dev )
@@ -439,7 +438,7 @@ local function startChild( dev )
 	D("startChild() child %1 pull from %2.%3/%4", dev, dn, service, variable)
 
 	if getVarNumeric( "Enabled", 0, pluginDevice, MYSID ) == 0 then
-		L({level=2,"%1 (#%2) not started, parent %1 (#%2) is disabled."},
+		L({level=2,msg="%1 (#%2) not started, parent %1 (#%2) is disabled."},
 			luup.devices[dev].description, dev, luup.devices[pluginDevice].description, pluginDevice)
 		luup.set_failure( 1, dev )
 	else
@@ -972,14 +971,13 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 		if isOpenLuup then
 			-- For openLuup, only show device types for resources that are installed
 			local loader = require "openLuup.loader"
-			if loader.find_file ~= nil then
-				for k,v in pairs( dfMap ) do
-					if loader.find_file( v.device_file ) then
-						r[k] = v
-					end
+			local vfs = require "openLuup.virtualfilesystem"
+			for k,v in pairs( dfMap ) do
+				if vfs.attributes( "built-in/" .. v.device_file ) then
+					r[k] = v
+				elseif loader.find_file ~= nil and loader.find_file( v.device_file ) then
+					r[k] = v
 				end
-			else
-				L{level=1,msg="PLEASE UPGRADE YOUR OPENLUUP TO 181122 OR HIGHER FOR FULL SUPPORT OF SITESENSOR VIRTUAL DEVICES"}
 			end
 		else
 			r = dfMap
