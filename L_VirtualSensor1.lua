@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.11develop-19337RC"
+local _PLUGIN_VERSION = "1.11"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 

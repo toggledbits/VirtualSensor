@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 1.11 (development)
+## Version 1.11 (released)
 
 * `SetArmed` action was not correctly implemented (fixed).
 
