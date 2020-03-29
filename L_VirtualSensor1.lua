@@ -303,8 +303,6 @@ local function initChild( dev )
 		luup.variable_set( MYSID, "SourceServiceId", "", dev )
 		luup.variable_set( MYSID, "SourceVariable", "", dev )
 
-		luup.variable_set( MYSID, "Alias", "", dev )
-
 		luup.attr_set( 'invisible', 0, dev );
 
 		local df = dfMap[ luup.devices[dev].device_type ]
@@ -325,10 +323,6 @@ local function initChild( dev )
 
 		luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
 		return
-	end
-
-	if luup.variable_get( MYSID, "Alias", dev ) == nil then
-		luup.variable_set( MYSID, "Alias", "", dev )
 	end
 
 	if s < _CONFIGVERSION then
@@ -493,6 +487,7 @@ local function plugin_runOnce(dev)
 		D("runOnce() Performing first-time initialization!")
 		luup.variable_set( MYSID, "Enabled", 1, dev )
 		luup.variable_set( MYSID, "DebugMode", 0, dev )
+		luup.variable_set( MYSID, "Alias", "", dev )
 		luup.variable_set( MYSID, "Interval", 60, dev )
 		luup.variable_set( MYSID, "Period", 0, dev )
 		luup.variable_set( MYSID, "Amplitude", 1, dev )
@@ -937,6 +932,10 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 		return json.encode( st ), "application/json"
 
 	elseif string.find("trip reset arm disarm setvalue", action) then
+		--[[
+			2020-03-29 PHR
+			N.B. THIS ONLY WORKS FOR MASTER, NOT CHILD, AND NEEDS TO BE RETHOUGHT
+		--]]
 		local alias = lul_parameters['alias'] or ""
 		local parm = {}
 		local devAction
@@ -959,7 +958,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 		end
 		local nDev = 0
 		for k,v in pairs( luup.devices ) do
-			if v.device_type == MYTYPE or v.device_num_parent == pluginDevice then
+			if v.device_type == MYTYPE then
 				local da = luup.variable_get(MYSID, "Alias", k) or ""
 				if da ~= "" and ( alias == "*" or alias == da ) then
 					luup.call_action( sid, devAction, parm, k)
