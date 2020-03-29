@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 1.12 (released)
+
+* Improve detection of system ready to prevent spurious "not ready" message when UI attempts to refresh device list (race condition between system startup and plugin startup).
+
 ## Version 1.11 (released)
 
 * `SetArmed` action was not correctly implemented (fixed).
