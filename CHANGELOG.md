@@ -2,6 +2,7 @@
 
 ## Version 1.12 (released)
 
+* Fix bug in the handling of child devices when alias actions/requests are used.
 * Improve detection of system ready to prevent spurious "not ready" message when UI attempts to refresh device list (race condition between system startup and plugin startup).
 
 ## Version 1.11 (released)

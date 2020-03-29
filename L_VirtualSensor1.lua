@@ -11,7 +11,7 @@ local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
 local _PLUGIN_VERSION = "1.12"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
-local _CONFIGVERSION = 19148
+local _CONFIGVERSION = 20089
 
 local debugMode = false
 
@@ -276,7 +276,7 @@ end
 function actionSetValue( dev, val )
 	D("actionSetValue(%1,%2)", dev, val)
 	val = tonumber(val)
-	if val ~= nil then
+	if val then
 		luup.variable_set( "urn:upnp-org:serviceId:TemperatureSensor1", "CurrentTemperature", val, dev )
 		luup.variable_set( "urn:micasaverde-com:serviceId:GenericSensor1", "CurrentLevel", val, dev )
 		luup.variable_set( "urn:micasaverde-com:serviceId:HumiditySensor1", "CurrentLevel", val, dev )
@@ -303,6 +303,8 @@ local function initChild( dev )
 		luup.variable_set( MYSID, "SourceServiceId", "", dev )
 		luup.variable_set( MYSID, "SourceVariable", "", dev )
 
+		luup.variable_set( MYSID, "Alias", "", dev )
+
 		luup.attr_set( 'invisible', 0, dev );
 
 		local df = dfMap[ luup.devices[dev].device_type ]
@@ -323,6 +325,10 @@ local function initChild( dev )
 
 		luup.variable_set( MYSID, "Version", _CONFIGVERSION, dev )
 		return
+	end
+
+	if luup.variable_get( MYSID, "Alias", dev ) == nil then
+		luup.variable_set( MYSID, "Alias", "", dev )
 	end
 
 	if s < _CONFIGVERSION then
@@ -531,10 +537,6 @@ local function plugin_runOnce(dev)
 		luup.variable_set( MYSID, "BatteryEmulation", 0, dev )
 		luup.variable_set( MYSID, "BatteryReset", 0, dev )
 		luup.variable_set( SECURITYSID, "AutoUntrip", 0, dev )
-	end
-	if rev < 010101 then
-		D("runOnce() updating config for rev 010101")
-		luup.variable_set( MYSID, "Alias", "", dev )
 	end
 	if rev < 010200 then
 		D("runOnce() updating config for rev 010200")
@@ -957,7 +959,7 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 		end
 		local nDev = 0
 		for k,v in pairs( luup.devices ) do
-			if v.device_type == MYTYPE then
+			if v.device_type == MYTYPE or v.device_num_parent == pluginDevice then
 				local da = luup.variable_get(MYSID, "Alias", k) or ""
 				if da ~= "" and ( alias == "*" or alias == da ) then
 					luup.call_action( sid, devAction, parm, k)
