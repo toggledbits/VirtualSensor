@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.11"
+local _PLUGIN_VERSION = "1.12"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 19148
 
@@ -904,9 +904,11 @@ function requestHandler( lul_request, lul_parameters, lul_outputformat )
 		return string.format("Device #%s result: %s, %s, %s, %s", tostring(deviceNum), tostring(err), tostring(msg), tostring(job), dump(args)), "text/plain"
 	end
 
-	if action == "status" then
-		local json = require("dkjson")
-		if json == nil then json = require("dkjson") end
+	if action == "alive" then
+		return '{"alive":true}', "application/json"
+
+	elseif action == "status" then
+		local json = require "dkjson"
 		local st = {
 			name=_PLUGIN_NAME,
 			version=_PLUGIN_VERSION,

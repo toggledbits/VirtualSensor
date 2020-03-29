@@ -13,7 +13,7 @@ var VirtualSensor = (function(api) {
 	// unique identifier for this plugin...
 	var uuid = '7ed70018-0e76-11e8-a584-74d4351650de';
 
-	var pluginVersion = "1.11"
+	var pluginVersion = "1.12";
 
 	var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 
@@ -388,23 +388,23 @@ var VirtualSensor = (function(api) {
 		jQuery.ajax({
 			url: api.getDataRequestURL(),
 			data: {
-				id: "status",
-				DeviceNum: api.getCpanelDeviceId(),
-				output_format: "json"
+				id: "lr_VirtualSensor",
+				action: "alive",
+				r: Math.random()
 			},
 			dataType: "json",
-			timeout: 5000
+			timeout: 2000
 		}).done( function( data, statusText, jqXHR ) {
-			var key = "Device_Num_" + api.getCpanelDeviceId();
-			if ( data[key] && -1 === parseInt( data[key].status ) ) {
-				setTimeout( redrawChildren, 2000 );
+			if ( data && data.alive ) {
+				jQuery( 'div#vs-content div#notice' ).html( "" );
+				redrawChildren();
 			} else {
 				jQuery( 'div#vs-content div#notice' ).append( "&ndash;" );
-				setTimeout( waitForReload, 1000 );
+				setTimeout( waitForReload, 3000 );
 			}
 		}).fail( function( jqXHR, textStatus, errorThrown ) {
 			jQuery( 'div#vs-content div#notice' ).append( "&bull;" );
-			setTimeout( waitForReload, 2000 );
+			setTimeout( waitForReload, 3000 );
 		});
 	}
 
@@ -601,7 +601,7 @@ var VirtualSensor = (function(api) {
 			sel.append( jQuery( '<option/>' ).val("").text('--choose type--') ).val( "" ); /* default */
 			br.append( sel );
 			br.append( '<button id="addchild" class="btn btn-md btn-primary">Create New Virtual Sensor</button>' );
-			br.append( '<div id="notice" />' );
+			br.append( '<div id="notice" class="vsensor-notice" />' );
 			container.append( row.append( br ) );
 			/* Now, populate the menu */
 			jQuery( 'button#addchild', container ).on( 'click.virtualsensor', handleAddChildClick ).prop( 'disabled', true );
@@ -644,6 +644,7 @@ var VirtualSensor = (function(api) {
 			html += 'div#vs-content div.vssensor { border-top: 1px solid #428bca; padding: 8px 0; }';
 			html += 'div#vs-content label { font-weight: normal; display: inline-block; }';
 			html += 'div#vs-content div.vscontrol { border-top: 1px solid black; padding: 8px 0; }';
+			html += 'div#vs-content div.vsensor-notice { padding: 8px 0px; font-weight: bold; font-size: 125%; }';
 			html += '</style>';
 			jQuery( 'head' ).append( html );
 
