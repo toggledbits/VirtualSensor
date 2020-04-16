@@ -26,7 +26,8 @@ copied from the source device, and the timestamp at which the last change occurr
 sensor types for them to be available in Virtual Sensor. This is because openLuup
 does not include Vera's full suite of default, known device type definitions. 
 It is a simple matter to copy the device file and service file(s) from your
-Vera's `/etc/cmh-lu` directory to your openLuup installation directory.
+Vera's `/etc/cmh-lu` directory to your openLuup installation directory. If you are using
+the VeraBridge, you can invoke the `GetVeraFiles` action on the bridge device.
 
 Binary virtual sensors can either copy the value of the source device directly 
 (the default behavior), or match the value to a specified string. When matching,
@@ -169,14 +170,6 @@ its state, make sure the device stays in *Disabled* state.
 
 ### Service urn:toggledbits-com:serviceId:VirtualSensor1 ###
 
-In addition to the "standard" services that VirtualSensor mimics, it has a few
-tricks of its own.
-
-The `Alias` state variable holds an optional alias for the VirtualSensor.
-It is used
-in conjunction with the alternate web API described below, to identify one
-or more sensors (rather than using the Vera device ID).
-
 The `SetEnabled` service action can be invoked to enable or disable the
 VirtualSensor's function generator and automatic manipulation of values.
 To enable it, set the `newEnabledValue` parameter to 1; to disable it,
@@ -184,7 +177,7 @@ set it 0. When disabled, a VirtualSensor can still be controlled by the
 Luup actions available (`Trip`, `Reset`, `SetValue`) and
 the alternate web API, below.
 
-The `SetValue` service action sets a new value for the sensor. The value must
+The `SetValue` service action sets a new value for the sensor's function generator. The value must
 be passed in the `newValue` parameter, and must be a number or a string that
 can be parsed to a number. When used, the sensor's value will be set to any
 valid value that is passed, regardless of the configuration of the function

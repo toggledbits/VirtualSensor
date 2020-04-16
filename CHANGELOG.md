@@ -2,7 +2,7 @@
 
 ## Version 1.12 (released)
 
-* Fix bug in the handling of child devices when alias actions/requests are used.
+* The alternate "alias" mechanism for using requests to the plugin to update the virtual sensor is deprecated. It does not work for child devices.
 * Improve detection of system ready to prevent spurious "not ready" message when UI attempts to refresh device list (race condition between system startup and plugin startup).
 
 ## Version 1.11 (released)
