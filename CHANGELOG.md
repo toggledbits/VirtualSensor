@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 1.13 (development 20324)
+
+* Fix name and license in header of J_VirtualSensor_UI7.js
+
 ## Version 1.12 (released)
 
 * The alternate "alias" mechanism for using requests to the plugin to update the virtual sensor is deprecated. It does not work for child devices.
