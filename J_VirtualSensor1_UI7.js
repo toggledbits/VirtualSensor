@@ -1,10 +1,10 @@
 //# sourceURL=J_VirtualSensor1_UI7.js
 /**
  * J_VirtualSensor1_UI7.js
- * Configuration interface for ReactorSensor
+ * Configuration interface for VirtualSensor
  *
  * Copyright 2017,2018,2019 Patrick H. Rigney, All Rights Reserved.
- * This file is part of Reactor. For license information, see LICENSE at https://github.com/toggledbits/Reactor
+ * For license information, see https://github.com/toggledbits/VirtualSensor/blob/master/LICENSE
  */
 /* globals api,jQuery,Utils */
 
@@ -13,7 +13,7 @@ var VirtualSensor = (function(api) {
 	// unique identifier for this plugin...
 	var uuid = '7ed70018-0e76-11e8-a584-74d4351650de';
 
-	var pluginVersion = "1.12";
+	var pluginVersion = "1.13develop-20324";
 
 	var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 
