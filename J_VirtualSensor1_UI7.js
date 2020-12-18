@@ -13,7 +13,7 @@ var VirtualSensor = (function(api) {
 	// unique identifier for this plugin...
 	var uuid = '7ed70018-0e76-11e8-a584-74d4351650de';
 
-	var pluginVersion = "1.13develop-20324";
+	var pluginVersion = "1.13develop-20353";
 
 	var serviceId = "urn:toggledbits-com:serviceId:VirtualSensor1";
 
@@ -300,7 +300,7 @@ var VirtualSensor = (function(api) {
 		if ( ( key || "" ) !== "" ) {
 			var opt = jQuery( 'option[value="' + key + '"]', el );
 			if ( opt.length === 0 ) {
-				el.append( jQuery('<option/>').val( key ).text( key + "???" ).prop( 'selected', true ) );
+				el.append( jQuery('<option></option>').val( key ).text( key + "???" ).prop( 'selected', true ) );
 			} else {
 				el.val( key );
 			}
@@ -378,7 +378,7 @@ var VirtualSensor = (function(api) {
 			var m = makeVariableMenu( device );
 			vm.prop( 'disabled', false ).append( m.children() );
 		} else {
-			vm.append( jQuery( '<option/>' ).val( "" ).text( "(no copy)" ) );
+			vm.append( jQuery( '<option></option>' ).val( "" ).text( "(no copy)" ) );
 			vm.prop( 'disabled', true );
 		}
 		handleRowChange( ev );
@@ -521,7 +521,7 @@ var VirtualSensor = (function(api) {
 	function redrawChildren() {
 		var myDevice = api.getCpanelDeviceId();
 		var devices = api.cloneObject( api.getListOfDevices() );
-		var mm = jQuery( '<select class="devicemenu form-control form-control-sm" />' );
+		var mm = jQuery( '<select class="devicemenu form-control form-control-sm"></select>' );
 		mm.append( '<option value="">(no device/no copy)</option>' );
 		devices.sort( function( a, b ) {
 			if ( (a.name || "").toLowerCase() == (b.name || "").toLowerCase() ) {
@@ -530,7 +530,7 @@ var VirtualSensor = (function(api) {
 			return (a.name || "").toLowerCase() < (b.name || "").toLowerCase() ? -1 : 1;
 		});
 		for ( var ix=0; ix<(devices || []).length; ix++ ) {
-			var opt = jQuery( '<option/>');
+			var opt = jQuery( '<option></option>');
 			opt.val( devices[ix].id );
 			opt.text( devices[ix].name + " (#" + devices[ix].id + ")" );
 			mm.append( opt );
@@ -538,7 +538,7 @@ var VirtualSensor = (function(api) {
 
 		var container = jQuery( 'div#vs-content' ).empty();
 		var count = 0;
-		var row = jQuery( '<div class="row vshead" />' );
+		var row = jQuery( '<div class="row vshead"></div>' );
 		row.append( '<div class="col-xs-12 col-sm-3 col-lg-2">Virtual Sensor</div>' );
 		row.append( '<div class="col-xs-12 col-sm-7 col-lg-7">Source Device/State Variable</div>' );
 		row.append( '<div class="col-xs-12 col-sm-2 col-lg-3">Last Update</div>' );
@@ -546,18 +546,18 @@ var VirtualSensor = (function(api) {
 		for ( ix=0; ix<(devices || []).length; ix++ ) {
 			var v = devices[ix];
 			if ( v.id_parent == myDevice ) {
-				row = jQuery( '<div class="row vssensor" />' );
+				row = jQuery( '<div class="row vssensor"></div>' );
 				row.attr( 'id', "d" + String(v.id) );
 
-				var col = jQuery( '<div class="col-xs-12 col-sm-3 col-lg-2 vsname" />' );
+				var col = jQuery( '<div class="col-xs-12 col-sm-3 col-lg-2 vsname"></div>' );
 				row.append( col.text( v.name + ' (#' + v.id + ')' ) );
 
 				/* Device menu for row */
-				col = jQuery( '<div class="col-xs-12 col-sm-7 col-lg-7 form-inline" />' );
+				col = jQuery( '<div class="col-xs-12 col-sm-7 col-lg-7 form-inline"></div>' );
 				var sourcedevice = api.getDeviceStateVariable( v.id, serviceId, "SourceDevice" ) || "";
 				var dm = mm.clone();
 				if ( jQuery( 'option [value="' + sourcedevice + '"]' ).length == 0 ) {
-					dm.append( jQuery( '<option/>' ).val( sourcedevice ).text( "Missing device " + sourcedevice ) );
+					dm.append( jQuery( '<option></option>' ).val( sourcedevice ).text( "Missing device " + sourcedevice ) );
 				}
 				dm.val( sourcedevice );
 				col.append( dm );
@@ -581,7 +581,7 @@ var VirtualSensor = (function(api) {
 
 				row.append( col );
 
-				col = jQuery( '<div class="col-xs-12 col-sm-2 col-lg-3 vswhen" />' );
+				col = jQuery( '<div class="col-xs-12 col-sm-2 col-lg-3 vswhen"></div>' );
 				row.append( col );
 
 				jQuery( 'div.vsname', row ).on( 'click.vsensor', handleNameClick );
@@ -595,13 +595,13 @@ var VirtualSensor = (function(api) {
 		if ( !enab ) {
 			container.append( '<div class="row"><div class="col-xs-12 col-sm-12"><span style="color: red;">NOTE: This instance is currently disabled--virtual sensor values do not update when the parent instance is disabled.</span></div></div>' );
 		} else {
-			row = jQuery( '<div class="row vscontrol" />' );
-			var br = jQuery( '<div class="col-xs-12 col-sm-12 form-inline" />' );
-			var sel = jQuery( '<select id="childtype" class="form-control form-control-sm" />' );
-			sel.append( jQuery( '<option/>' ).val("").text('--choose type--') ).val( "" ); /* default */
+			row = jQuery( '<div class="row vscontrol"></div>' );
+			var br = jQuery( '<div class="col-xs-12 col-sm-12 form-inline"></div>' );
+			var sel = jQuery( '<select id="childtype" class="form-control form-control-sm"></select>' );
+			sel.append( jQuery( '<option></option>' ).val("").text('--choose type--') ).val( "" ); /* default */
 			br.append( sel );
 			br.append( '<button id="addchild" class="btn btn-md btn-primary">Create New Virtual Sensor</button>' );
-			br.append( '<div id="notice" class="vsensor-notice" />' );
+			br.append( '<div id="notice" class="vsensor-notice"></div>' );
 			container.append( row.append( br ) );
 			/* Now, populate the menu */
 			jQuery( 'button#addchild', container ).on( 'click.virtualsensor', handleAddChildClick ).prop( 'disabled', true );
@@ -618,7 +618,7 @@ var VirtualSensor = (function(api) {
 				var childMenu = jQuery( 'div#vs-content select#childtype' );
 				for ( var ch in data ) {
 					if ( data.hasOwnProperty( ch ) ) {
-						childMenu.append( jQuery( '<option/>' ).val( ch ).text( data[ch].name || ch ) );
+						childMenu.append( jQuery( '<option></option>' ).val( ch ).text( data[ch].name || ch ) );
 						hasOne = true;
 					}
 				}
@@ -648,7 +648,7 @@ var VirtualSensor = (function(api) {
 			html += '</style>';
 			jQuery( 'head' ).append( html );
 
-			html = '<div id="vs-content" />';
+			html = '<div id="vs-content"></div>';
 			html += footer();
 			api.setCpanelContent( html );
 
