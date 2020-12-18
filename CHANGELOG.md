@@ -1,7 +1,8 @@
 # Change Log
 
-## Version 1.13 (development 20324)
+## Version 1.13 (development 20353)
 
+* Support for ALTUI 2.52
 * Fix name and license in header of J_VirtualSensor_UI7.js
 
 ## Version 1.12 (released)
