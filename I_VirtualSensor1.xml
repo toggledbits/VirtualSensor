@@ -13,6 +13,7 @@
 			virtualSensorTick = VirtualSensor.plugin_tick
 			virtualSensorWatchCallback = VirtualSensor.plugin_watchCallback
 			virtualSensorRequestHandler = VirtualSensor.requestHandler
+			virtualSensorChildUpdateDelay = VirtualSensor.childUpdateDelay
 			luup.register_handler("virtualSensorRequestHandler", "VirtualSensor")
 			return VirtualSensor.plugin_init(dev)
 		end

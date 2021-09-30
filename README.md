@@ -1,4 +1,5 @@
 # VirtualSensor #
+
 VirtualSensor is a plugin for Vera home automation controllers that generates
 data and events for testing other plugins, scenes, scripts and program logic.
 It also creates standalone sensors of the available types (temperature, humidity,

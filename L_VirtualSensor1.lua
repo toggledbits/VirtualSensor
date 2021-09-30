@@ -9,7 +9,7 @@ module("L_VirtualSensor1", package.seeall)
 
 local _PLUGIN_ID = 9031 -- luacheck: ignore 211
 local _PLUGIN_NAME = "VirtualSensor"
-local _PLUGIN_VERSION = "1.13develop-20353"
+local _PLUGIN_VERSION = "1.13develop-21273"
 local _PLUGIN_URL = "http://www.toggledbits.com/virtualsensor"
 local _CONFIGVERSION = 20089
 
@@ -370,12 +370,12 @@ local function doChildUpdate( force, child )
 						if not isPattern then
 							m = "^" .. m:gsub( '[%^%$%*%+%-%?%%%%[%]%(%)]', '%%%1' )
 						end
-						D("childWatchCallback() match string %1 to %2", newVal, m )
+						D("doChildUpdate() match string %1 to %2", newVal, m )
 						oldVal = luup.variable_get( ts, tv, child ) or "" -- override
 						newVal = newVal:match( m ) and "1" or "0"
 					end
 				end
-				D("childWatchCallback() setting %1.%2/%3 to %4", child, ts, tv, newVal)
+				D("doChildUpdate() setting %1.%2/%3 to %4", child, ts, tv, newVal)
 				luup.variable_set( ts, tv, newVal, child )
 				luup.variable_set( MYSID, "PreviousValue", oldVal, child )
 				luup.variable_set( MYSID, "LastUpdate", os.time(), child )
@@ -453,11 +453,8 @@ local function startChild( dev )
 	end
 end
 
--- Watched variable for child has changed. Set new value on child.
-local function childWatchCallback( dev, svc, var, oldVal, newVal, child )
-	D("childWatchCallback(%1,%2,%3,%4,%5,%6)", dev, svc, var, oldVal, newVal, child)
-	assert( luup.devices[child] )
-	doChildUpdate( false, child )
+function childUpdateDelay( p )
+	doChildUpdate( false, tonumber( p ) or error("Invalid child device ID in delay callback" ) )
 end
 
 --[[   P L U G I N   C O R E   F U N C T I O N S   ]]
@@ -744,7 +741,7 @@ function plugin_watchCallback( dev, service, variable, oldValue, newValue )
 			return
 		end
 		for _,d in pairs( watchMap[key] ) do
-			pcall( childWatchCallback, dev, service, variable, oldValue, newValue, d )
+			luup.call_delay( 'virtualSensorChildUpdateDelay', 0, d )
 		end
 	end
 
